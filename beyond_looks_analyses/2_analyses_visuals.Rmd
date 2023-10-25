@@ -11,7 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r call in libraries and clean data, include=FALSE}
 library(here)
-library(dbplyr)
+library(dplyr)
+library(stringr)
 
 load(here("clean_data/arch_final.Rda"))
 
@@ -44,12 +45,26 @@ kbh_data_clean <- arch_final%>%
   mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
                             TRUE~FALSE))
 
+#Create trial language column to describe the language in which the babies were tested
+kbh_data_clean <- kbh_data_clean %>%
+  ungroup()%>%
+  group_by(studio_test_name, eng_exp, fre_exp)%>%
+  mutate(trial_lang = case_when(str_detect(studio_test_name,"E")~ "english",
+                                str_detect(studio_test_name, "F")~ "french"))
+
 ```
 
 
 ```{r calculate all the different dependent variables}
 
 #1. Proportion looking to target
+
+prop_looking <- kbh_data_clean %>%
+  filter(noun_onset>= 360 & noun_onset <= 3000)%>%
+  group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_target_lang_prop)%>%
+  summarise(samples_total=sum(target==TRUE, target==FALSE ),
+            samples_target=sum(target))%>%
+  mutate(prop_looking= samples_target/samples_total) 
 
 #2. Proportion looking difference
 
@@ -58,6 +73,23 @@ kbh_data_clean <- arch_final%>%
 #4. Correct first shift to target
 
 #5. Reaction time
+
+distractor_initial_trials <- kbh_data_clean %>%
+  filter(noun_onset >= 360 & noun_onset <= 1800)%>%
+  mutate(initial_trial = case_when(
+    noun_onset >=360 & noun_onset <=400 & target==FALSE ~ "distractor_initial",
+    noun_onset >=360 & noun_onset <=400 & target==TRUE ~ "target_initial")
+) %>%
+  group_by(recording_name, subject_id, trial_number, media_name, initial_trial) %>% 
+  summarise() %>%
+  filter(initial_trial =="distractor_initial")
+
+RT <- full_join (kbh_data_clean, RT) %>%
+  filter(initial_trial=="distractor_initial") %>%
+  filter(noun_onset >= 360 & noun_onset <= 1800)%>%
+mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0))
+#Now I know when the first correct switched occurred, now I need to calculate the latency so from 360 post noun onset
+#how much delay was there to the first correct switch so switch time - 360?
 
 #6. Total number of switches between AOIs
 

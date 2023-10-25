@@ -1,0 +1,6 @@
+"0","RT <- full_join (kbh_data_clean, RT) %>%
+  filter(initial_trial==""distractor_initial"") %>%
+  filter(noun_onset >= 360 & noun_onset <= 1800)%>%
+mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0))
+"
+"2","Joining with `by = join_by(recording_name, media_name, recording_date, local_time_stamp, recording_timestamp, validity_left, validity_right, gaze_point_x, gaze_point_y, studio_project_name, studio_test_name, trial_number, study_id, study_order, age_days, age_months, gender, eng_exp, fre_exp, other_lang_exp, acq_age_fr, acq_age_eng, exclusion_premature, exclusion_low_birth_weight, exclusion_dev_delay, exclusion_health, exclusion_technical_error, exclusion_testing_error, subject_id, target_side, distractor_side, target_x_min, target_x_max, target_y_min, target_y_max, distractor_x_min, distractor_x_max, distractor_y_min, distractor_y_max, trial_type, half_age, seq_fr_exclude, seq_eng_exclude, trial_from_zero, noun_onset, target, trial_lang)`"
