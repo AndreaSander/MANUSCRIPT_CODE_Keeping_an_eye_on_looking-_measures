@@ -18,6 +18,35 @@ load(here("clean_data/arch_final.Rda"))
 ```
 
 
+```{r clean data to be used in analyses}
+
+kbh_data_clean <- arch_final%>%
+  group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
+  mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
+  group_by(studio_project_name)%>%
+  mutate(noun_onset = case_when(studio_project_name=="CompMix-36"~trial_from_zero-3000, #Substracting noun onset to normalize
+                                studio_project_name=="LearnMix-36"~trial_from_zero-4500,
+                                studio_project_name=="Mix-20"~trial_from_zero-5400,
+                                studio_project_name=="Mix-14"~trial_from_zero-5400,
+                                studio_project_name=="CogMisp-24"~trial_from_zero-1500))%>%
+  ungroup()%>%
+  rename(target_side=target, distractor_side=distractor,
+         gaze_point_x= gaze_point_x_adc_spx, 
+         gaze_point_y = gaze_point_y_adc_spx)%>%
+  filter(gaze_point_x>=0 & gaze_point_x<= 1920)%>% #keeps only observations that are in the screen
+  filter(gaze_point_y>=0 & gaze_point_y<=1200)%>%
+  filter(!is.na(gaze_point_x))%>% #gets rid of the observations where tobii didn't get any reading
+  filter(!is.na(gaze_point_y))%>%
+  filter(!is.na(validity_left)) %>%
+  filter(!is.na(validity_right)) %>%
+  filter(validity_left<= 1)%>%
+  filter(validity_right <= 1)%>%
+  mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
+                            TRUE~FALSE))
+
+```
+
+
 ```{r calculate all the different dependent variables}
 
 #1. Proportion looking to target
