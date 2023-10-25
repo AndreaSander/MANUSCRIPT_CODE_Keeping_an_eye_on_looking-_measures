@@ -1,0 +1,11 @@
+"0","library(here)"
+"2","here() starts at C:/Users/andre/OneDrive/Documentos/Research/Beyond_looks/beyond_looks_analyses
+"
+"0","library(dbplyr)"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"0","load(here(""clean_data/arch_final.Rda""))"
+"0",""
