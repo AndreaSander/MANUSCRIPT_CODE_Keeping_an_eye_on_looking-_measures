@@ -69,6 +69,13 @@ prop_looking <- kbh_data_clean %>%
 #2. Proportion looking difference
 
 #3. Number of fixations
+### Total number of fixations to the target during the window of analyses
+
+fixations_total <- kbh_data_clean  %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  filter(target == TRUE) %>%
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  summarise(looking_to_target = sum(target==TRUE))
 
 #4. Correct first shift to target
 
