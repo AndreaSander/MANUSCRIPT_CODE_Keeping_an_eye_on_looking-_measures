@@ -96,12 +96,19 @@ RT <- full_join (kbh_data_clean, distractor_initial_trials) %>%
   filter(noun_onset >= 360 & noun_onset <= 1800)%>%
 mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
   filter(first_true == 1) %>%
-
-   group_by(recording_name, subject_id, trial_number, media_name,noun_onset ) %>%  
+   group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
   summarise() %>%
   mutate(latency_to_switch = noun_onset - 360)
+#this still needs work to just keep the latency of the first switch if there were more than 1
 
 #6. Total number of switches between AOIs
+
+number_of_switches<- kbh_data_clean  %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  mutate(AOI_switches = ifelse(target == TRUE & lag(target) == FALSE | target == FALSE & lag(target) == TRUE, 1, 0))%>%
+  filter(AOI_switches == 1) %>%
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  summarise(total_aoi_switches = sum(AOI_switches))
 
 #7. Mean latency of refixation during trial
 
@@ -112,6 +119,16 @@ mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
 #10. Pupil dilation
 
 #11. Duration of first look
+### Duration of the first look recorded toward a particular AOI.
+
+first_look_duration <- kbh_data_clean  %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%   
+  mutate(AOI_switches = ifelse(target == TRUE & lag(target) == FALSE | target == FALSE & lag(target) == TRUE, 1, 0)) %>%
+    filter(AOI_switches == 1) %>%
+   group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
+  summarise() %>%
+   mutate(first_look_dur = noun_onset - 360)
+
 
 ```
 
