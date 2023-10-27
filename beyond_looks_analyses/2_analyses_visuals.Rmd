@@ -98,8 +98,11 @@ mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
   filter(first_true == 1) %>%
    group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
   summarise() %>%
+    arrange(recording_name, trial_number, by_group = T) %>%
+  mutate(number_of_trial_instance = row_number()) %>%  #I only want to keep the first instance of switch because I am only interested in the latency of the very first switch towards target.
+filter(number_of_trial_instance == 1) %>%
   mutate(latency_to_switch = noun_onset - 360)
-#this still needs work to just keep the latency of the first switch if there were more than 1
+
 
 #6. Total number of switches between AOIs
 
@@ -125,10 +128,12 @@ first_look_duration <- kbh_data_clean  %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%   
   mutate(AOI_switches = ifelse(target == TRUE & lag(target) == FALSE | target == FALSE & lag(target) == TRUE, 1, 0)) %>%
     filter(AOI_switches == 1) %>%
-   group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
+     group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
   summarise() %>%
-   mutate(first_look_dur = noun_onset - 360)
-
+  arrange(recording_name, trial_number, by_group = T) %>%
+  mutate(number_of_trial_instance = row_number()) %>%  #I only want to keep the first instance of switch because I am only interested in the duration of the very first look during the trial analyses window.
+filter(number_of_trial_instance == 1) %>%
+  mutate(first_look_dur = noun_onset - 360) 
 
 ```
 
