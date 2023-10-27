@@ -84,12 +84,15 @@ distractor_initial_trials <- kbh_data_clean %>%
   summarise() %>%
   filter(initial_trial =="distractor_initial")
 
-RT <- full_join (kbh_data_clean, RT) %>%
+RT <- full_join (kbh_data_clean, distractor_initial_trials) %>%
   filter(initial_trial=="distractor_initial") %>%
   filter(noun_onset >= 360 & noun_onset <= 1800)%>%
-mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0))
-#Now I know when the first correct switched occurred, now I need to calculate the latency so from 360 post noun onset
-#how much delay was there to the first correct switch so switch time - 360?
+mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
+  filter(first_true == 1) %>%
+
+   group_by(recording_name, subject_id, trial_number, media_name,noun_onset ) %>%  
+  summarise() %>%
+  mutate(latency_to_switch = noun_onset - 360)
 
 #6. Total number of switches between AOIs
 
