@@ -50,7 +50,9 @@ kbh_data_clean <- kbh_data_clean %>%
   ungroup()%>%
   group_by(studio_test_name, eng_exp, fre_exp)%>%
   mutate(trial_lang = case_when(str_detect(studio_test_name,"E")~ "english",
-                                str_detect(studio_test_name, "F")~ "french"))
+                                str_detect(studio_test_name, "F")~ "french")) %>%
+  mutate(exp_to_target_lang = case_when(trial_lang == "english" ~ eng_exp,
+                                        trial_lang == "french" ~ fre_exp))
 
 ```
 
@@ -61,10 +63,11 @@ kbh_data_clean <- kbh_data_clean %>%
 
 prop_looking <- kbh_data_clean %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_target_lang_prop)%>%
+  group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_to_target_lang)%>%
   summarise(samples_total=sum(target==TRUE, target==FALSE ),
             samples_target=sum(target))%>%
-  mutate(prop_looking= samples_target/samples_total) 
+  mutate(prop_looking= samples_target/samples_total) %>%
+  ungroup()
 
 #2. Proportion looking difference
 
@@ -134,6 +137,12 @@ first_look_duration <- kbh_data_clean  %>%
   mutate(number_of_trial_instance = row_number()) %>%  #I only want to keep the first instance of switch because I am only interested in the duration of the very first look during the trial analyses window.
 filter(number_of_trial_instance == 1) %>%
   mutate(first_look_dur = noun_onset - 360) 
+
+```
+```{r merging newly created DVs to the original dataset}
+data_new_dvs<- kbh_data_clean %>%
+  inner_join(kbh_data_clean, prop_looking, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+
 
 ```
 
