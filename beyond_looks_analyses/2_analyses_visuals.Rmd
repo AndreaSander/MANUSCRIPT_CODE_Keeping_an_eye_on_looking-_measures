@@ -141,8 +141,21 @@ filter(number_of_trial_instance == 1) %>%
 ```
 ```{r merging newly created DVs to the original dataset}
 data_new_dvs<- kbh_data_clean %>%
-  inner_join(kbh_data_clean, prop_looking, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+  select(recording_name, media_name, subject_id, trial_number, age_months, exp_to_target_lang)
 
+  data_new_dvs<- full_join(data_new_dvs, prop_looking, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+  
+   data_new_dvs<- full_join(data_new_dvs, fixations_total, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+   
+    data_new_dvs<- full_join(data_new_dvs, RT, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+    
+     data_new_dvs<- full_join(data_new_dvs, number_of_switches, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+     
+     data_new_dvs<- full_join(data_new_dvs, first_look_duration, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+
+
+```
+```{r correlation matrix between DVs}
 
 ```
 
