@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(here)
 library(dplyr)
 library(stringr)
+library(Hmisc)
+library(corrplot)
 
 load(here("clean_data/arch_final.Rda"))
 
@@ -140,22 +142,63 @@ filter(number_of_trial_instance == 1) %>%
 
 ```
 ```{r merging newly created DVs to the original dataset}
+
+#clean variables to be merged
+
+#1)
+prop_looking_c<- prop_looking %>%
+  select(recording_name, subject_id, trial_number, media_name, prop_looking)
+
+#2)
+fixations_total_c<- fixations_total %>%
+  select(recording_name, subject_id, trial_number, media_name, looking_to_target)
+
+#3)
+RT_c<- RT %>%
+select(recording_name, subject_id, trial_number, media_name, latency_to_switch)  
+
+#4)
+number_of_switches_c<- number_of_switches %>%
+select(recording_name, subject_id, trial_number, media_name, total_aoi_switches)  
+
+#5)
+first_look_duration_c<- first_look_duration %>%
+ select(recording_name, subject_id, trial_number, media_name, first_look_dur)   
+
+
+
 data_new_dvs<- kbh_data_clean %>%
   select(recording_name, media_name, subject_id, trial_number, age_months, exp_to_target_lang)
 
-  data_new_dvs<- full_join(data_new_dvs, prop_looking, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+  data_new_dvs<- full_join(data_new_dvs, prop_looking_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
   
-   data_new_dvs<- full_join(data_new_dvs, fixations_total, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+   data_new_dvs<- full_join(data_new_dvs, fixations_total_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
    
-    data_new_dvs<- full_join(data_new_dvs, RT, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+    data_new_dvs<- full_join(data_new_dvs, RT_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
     
-     data_new_dvs<- full_join(data_new_dvs, number_of_switches, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+     data_new_dvs<- full_join(data_new_dvs, number_of_switches_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
      
-     data_new_dvs<- full_join(data_new_dvs, first_look_duration, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
+     data_new_dvs<- full_join(data_new_dvs, first_look_duration_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
 
 
 ```
+
+
+
 ```{r correlation matrix between DVs}
+
+#Select only numerical variables for correlation
+for_correlation<- data_new_dvs %>%
+  ungroup()%>%
+  select(age_months, exp_to_target_lang, prop_looking, looking_to_target, latency_to_switch, total_aoi_switches, first_look_dur)
+
+kbh_correlation <- cor(x=for_correlation, use="complete.obs")
+
+coorelation_for_p<- rcorr(as.matrix(for_correlation))
+
+
+
+corrplot(kbh_correlation)
 
 ```
 
