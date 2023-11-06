@@ -74,7 +74,8 @@ prop_looking <- kbh_data_clean %>%
 #2. Proportion looking difference
 
 #3. Number of fixations
-### Total number of fixations to the target during the window of analyses
+### Total number of fixations to the target during the window of analyses.
+#### Question: What is considered a fixation? --> In TOBII we kept only valid fixations (as in Mills-Smith, 2016), they also excluded by subject and by trial (which we will do).
 
 fixations_total <- kbh_data_clean  %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
@@ -85,12 +86,13 @@ fixations_total <- kbh_data_clean  %>%
 #4. Correct first shift to target
 
 #5. Reaction time
+#Question: How do we define distractor initial trials. Lets define a 100ms pre-analyses window from 260 post noun onset to 360 (the start of analyses window)
 
 distractor_initial_trials <- kbh_data_clean %>%
-  filter(noun_onset >= 360 & noun_onset <= 1800)%>%
+  filter(noun_onset >= 260 & noun_onset <= 3000)%>%
   mutate(initial_trial = case_when(
-    noun_onset >=360 & noun_onset <=400 & target==FALSE ~ "distractor_initial",
-    noun_onset >=360 & noun_onset <=400 & target==TRUE ~ "target_initial")
+    noun_onset >=260 & noun_onset <=360 & target==FALSE ~ "distractor_initial",
+    noun_onset >=260 & noun_onset <=360 & target==TRUE ~ "target_initial")
 ) %>%
   group_by(recording_name, subject_id, trial_number, media_name, initial_trial) %>% 
   summarise() %>%
@@ -98,7 +100,7 @@ distractor_initial_trials <- kbh_data_clean %>%
 
 RT <- full_join (kbh_data_clean, distractor_initial_trials) %>%
   filter(initial_trial=="distractor_initial") %>%
-  filter(noun_onset >= 360 & noun_onset <= 1800)%>%
+  filter(noun_onset >= 360 & noun_onset <= 3000)%>%
 mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
   filter(first_true == 1) %>%
    group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
@@ -188,6 +190,8 @@ data_new_dvs<- kbh_data_clean %>%
 ```{r correlation matrix between DVs}
 
 #Select only numerical variables for correlation
+
+#PEARSON CORRELATION
 for_correlation<- data_new_dvs %>%
   ungroup()%>%
   select(age_months, exp_to_target_lang, prop_looking, looking_to_target, latency_to_switch, total_aoi_switches, first_look_dur)
@@ -196,9 +200,18 @@ kbh_correlation <- cor(x=for_correlation, use="complete.obs")
 
 coorelation_for_p<- rcorr(as.matrix(for_correlation))
 
-
-
 corrplot(kbh_correlation)
+
+
+
+#SPEARMAN CORRELATION
+
+kbh_correlation_s <- cor(x=for_correlation, use="complete.obs", method = "spearman")
+
+
+
+corrplot(kbh_correlation_s)
+
 
 ```
 
