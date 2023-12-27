@@ -61,6 +61,19 @@ kbh_data_clean <- kbh_data_clean %>%
 
 ```{r calculate all the different dependent variables}
 
+###### First, create variables that will be useful for the calculations below ##
+distractor_initial_trials <- kbh_data_clean %>%
+  filter(noun_onset >= 260 & noun_onset <= 3000)%>%
+  mutate(initial_trial = case_when(
+    noun_onset >=260 & noun_onset <=360 & target==FALSE ~ "distractor_initial",
+    noun_onset >=260 & noun_onset <=360 & target==TRUE ~ "target_initial")
+) %>%
+  group_by(recording_name, subject_id, trial_number, media_name, initial_trial) %>% 
+  summarise() %>%
+  filter(initial_trial =="distractor_initial")
+
+
+
 #1. Proportion looking to target
 
 prop_looking <- kbh_data_clean %>%
@@ -72,6 +85,8 @@ prop_looking <- kbh_data_clean %>%
   ungroup()
 
 #2. Proportion looking difference
+#Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
+
 
 #3. Number of fixations
 ### Total number of fixations to the target during the window of analyses.
@@ -84,19 +99,34 @@ fixations_total <- kbh_data_clean  %>%
   summarise(looking_to_target = sum(target==TRUE))
 
 #4. Correct first shift to target
+#On trials where infants were fixated on the distractor upon hearing the target word (i.e., distractor-initial trials), the number of first shifts to the target picture within the 300–1,800 ms window following target word onset, as a proportion of all distractor-initial trials.
+
+#Question: in Fernald 2006 they excluded looks after 1800, because they considered them outliers. What do we want to do here?
+
+first_shift_target <- full_join (kbh_data_clean, distractor_initial_trials) %>%
+  
+  #Only keeping trials where the subject was looking at the distracter before noun onset.
+  filter(initial_trial=="distractor_initial") %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  
+    #Flagging the moment within a trial where the subject switched from distracter to target, within the window.
+    mutate(switch_to_target = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
+  
+    #Grouping and summarizing to get by subject by trial flagging of whether there was switching or not.
+     group_by(recording_name, subject_id, trial_number, media_name, switch_to_target) %>%  
+  summarise() %>%
+  
+      #We have two rows by child by trial when there was switching (one for each value switched and not switched), only one row for trials where there was no switching. Thus arrangeing switching in descending order so that the top row is always 1=switched, and I can get rid of the second row. The aim is to keep only one row per subject per trial with 1=switched, 0= did not switch.
+      arrange(recording_name, trial_number, desc(switch_to_target), by_group=T) %>%
+  mutate(number_of_trial_instance = row_number()) %>%
+   filter(number_of_trial_instance== 1)
+
+#Next I need to ungroup, and now go ahead and by subject calculate number of trials switched/total trials.
+
+
 
 #5. Reaction time
 #Question: How do we define distractor initial trials. Lets define a 100ms pre-analyses window from 260 post noun onset to 360 (the start of analyses window)
-
-distractor_initial_trials <- kbh_data_clean %>%
-  filter(noun_onset >= 260 & noun_onset <= 3000)%>%
-  mutate(initial_trial = case_when(
-    noun_onset >=260 & noun_onset <=360 & target==FALSE ~ "distractor_initial",
-    noun_onset >=260 & noun_onset <=360 & target==TRUE ~ "target_initial")
-) %>%
-  group_by(recording_name, subject_id, trial_number, media_name, initial_trial) %>% 
-  summarise() %>%
-  filter(initial_trial =="distractor_initial")
 
 RT <- full_join (kbh_data_clean, distractor_initial_trials) %>%
   filter(initial_trial=="distractor_initial") %>%
