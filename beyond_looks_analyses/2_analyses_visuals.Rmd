@@ -87,6 +87,16 @@ prop_looking <- kbh_data_clean %>%
 #2. Proportion looking difference
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
+#calculated by averaging the six item-pair mean difference scores for each subject. Calculated the difference in fixation proportions for each item-pair: the proportion of time that infants looked at one video when it was the target, minus the proportion of time they looked at it when it was the distracter.
+
+#First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not?
+
+#I think if we know right versus left image, we can calculate how many times the right image was the target, how many times it was the distractor, and substract by media name looks to the right (relative to the left = proportion) when the right was target minus looks to the right when the right (relative to the left = proportion) was distractor. Then ungroup, group by subject and average the proportion difference by subject.
+
+prop_looking_diff <- kbh_data_clean %>%
+  filter(noun_onset>= 360 & noun_onset <= 3000)%>%
+  group_by(recording_name, subject_id, trial_number, media_name)
+
 
 #3. Number of fixations
 ### Total number of fixations to the target during the window of analyses.
