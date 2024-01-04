@@ -15,6 +15,7 @@ library(dplyr)
 library(stringr)
 library(Hmisc)
 library(corrplot)
+library(tidyverse)
 
 load(here("clean_data/arch_final.Rda"))
 
@@ -89,15 +90,23 @@ prop_looking <- kbh_data_clean %>%
 
 #calculated by averaging the six item-pair mean difference scores for each subject. Calculated the difference in fixation proportions for each item-pair: the proportion of time that infants looked at one video when it was the target, minus the proportion of time they looked at it when it was the distracter.
 
-#First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not?
+#First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not? 
+#No help for it. I will need to know what was the image pair in the screen. NEED TO GO BACK TO THE DATA
 
-#I think if we know right versus left image, we can calculate how many times the right image was the target, how many times it was the distractor, and substract by media name looks to the right (relative to the left = proportion) when the right was target minus looks to the right when the right (relative to the left = proportion) was distractor. Then ungroup, group by subject and average the proportion difference by subject.
 
 prop_looking_diff <- kbh_data_clean %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  group_by(recording_name, subject_id, trial_number, media_name)
-
-
+  ungroup()%>%
+  select(recording_name, subject_id, trial_number, media_name, target_side, target)%>%
+  mutate(right_image = case_when(target_side == "R" ~ "Target",
+                                 target_side == "L"~ "Distractor")) %>%
+   mutate(left_image = case_when(target_side == "L" ~ "Target",
+                                 target_side == "R"~ "Distractor")) %>%
+group_by(recording_name, media_name, right_image, left_image) %>%
+    summarise(samples_total=sum(target==TRUE, target==FALSE ),
+            samples_target=sum(target)) %>%
+  mutate(proportions = samples_target/samples_total)
+  
 #3. Number of fixations
 ### Total number of fixations to the target during the window of analyses.
 #### Question: What is considered a fixation? --> In TOBII we kept only valid fixations (as in Mills-Smith, 2016), they also excluded by subject and by trial (which we will do).
