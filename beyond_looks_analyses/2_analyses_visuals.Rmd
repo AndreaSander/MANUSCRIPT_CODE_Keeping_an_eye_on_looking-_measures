@@ -178,12 +178,19 @@ number_of_switches<- kbh_data_clean  %>%
   summarise(total_aoi_switches = sum(AOI_switches))
 
 #7. Mean latency of refixation during trial
+#Mean latency of correct saccadic shifts from the center to the peripheral target (refixations)  during the trial. 
+#I would need to calculate the center point (shouldn't be too hard)
 
 #8. Mean fixation duration during trial
+#Mean duration of fixations during the window of analysis within a trial (pretty straight forward)
 
 #9. Proportion of fixation duration
+#Proportion of all periods of fixation during the window of analyses within a trial.
+#I guess this means like 3 periods of fixation out of 10 periods?
 
 #10. Pupil dilation
+#Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
+#I need the pupil data for this
 
 #11. Duration of first look
 ### Duration of the first look recorded toward a particular AOI.
