@@ -182,7 +182,25 @@ number_of_switches<- kbh_data_clean  %>%
 #I would need to calculate the center point (shouldn't be too hard)
 
 #8. Mean fixation duration during trial
-#Mean duration of fixations during the window of analysis within a trial (pretty straight forward)
+#Mean duration of fixations during the window of analysis within a trial. Mean by subject by trial?
+
+mean_fixation_dur<- mean_fixation_dur <- kbh_data_clean %>%
+  filter(noun_onset>= 360 & noun_onset <= 3000)%>%
+ungroup()%>%
+    group_by(recording_name, subject_id, trial_number, media_name) %>%
+  
+  #getting only the time stamps for the moments when the looks where to the target
+  mutate(looks_target_time_stamp = case_when(target==TRUE ~ noun_onset)) %>%
+  
+  #Calculating each individual row amount of milliseconds looking to target by subtracting a cell minus the cell above. that way if first look then 0 ms, if second look =  376 (second look) - 360 (first look) = 17ms of looking
+  mutate(duration_of_look= looks_target_time_stamp - lag(looks_target_time_stamp, default = first(looks_target_time_stamp))) %>%
+  
+  #adding all the calculated duration for each row of each trial into a single total duration by trial
+  summarise(target_fixation_duration = sum(duration_of_look, na.rm=T))
+
+#When you have time make some of the calculations by hand to make sure the duration is correct.
+#I guess here is by subject the mean duration. But check on the paper.
+
 
 #9. Proportion of fixation duration
 #Proportion of all periods of fixation during the window of analyses within a trial.
