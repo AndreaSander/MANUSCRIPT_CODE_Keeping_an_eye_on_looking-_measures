@@ -30,26 +30,26 @@ library(stringr)
 #This section reads in and cleans the variable names of the demographic data for all the studies.
 #It only needs to be loaded once and then the merged demographics can be loaded as a single RDA file
 
-load (here("anonymous_demographic_data/demo_learn.Rda")) 
+load (here("archival_KBH_anonimyzed/anonymized_demographic_data/demo_learn.Rda")) 
   # N=30
   
-load(here("anonymous_demographic_data/demo_cogmisp.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_demographic_data/demo_cogmisp.Rda"))
   # N= 76
   
-load(here("anonymous_demographic_data/demo_mix14.Rda")) 
+load(here("archival_KBH_anonimyzed/anonymized_demographic_data/demo_mix14.Rda")) 
   # N=49
   
-load(here("anonymous_demographic_data/demo_mix20.Rda")) 
+load(here("archival_KBH_anonimyzed/anonymized_demographic_data/demo_mix20.Rda")) 
   # N=67
   
-load(here("anonymous_demographic_data/demo_comp.Rda")) 
+load(here("archival_KBH_anonimyzed/anonymized_demographic_data/demo_comp.Rda")) 
   # N=30
   
   # #All the demographic information gets combined into a single data frame
 
 Demo_arch <- rbind(demo_learn,demo_cogmisp,demo_comp,demo_mix14,demo_mix20) #n=252
 
-#save(Demo_arch, file = here("merged_data_Sets/Demo_arch.Rda"))
+save(Demo_arch, file = here("archival_KBH_anonimyzed/anonymized_demographic_data/Demo_arch.Rda"))
 
 
 ```
