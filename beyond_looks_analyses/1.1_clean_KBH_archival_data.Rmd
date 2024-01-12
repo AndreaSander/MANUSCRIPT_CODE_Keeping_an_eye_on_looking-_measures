@@ -264,7 +264,7 @@ arch_comp_data <- eye_data_arch %>%
 #Adding an Area of Interest column to the newly merged data frame
 
 #This reads in a previously created dataframe containing AOI information for each trial/order/study
-AOI<- read_excel(here("AOI_maker.xlsx")) %>%
+AOI<- read_excel(here("archival_KBH_anonimyzed/AOI_maker.xlsx")) %>%
   clean_names() %>%
   mutate(trial_number = as.integer(parse_number(trial_number)))
 
@@ -320,6 +320,6 @@ arch_final<- arch_final %>%
   filter(trial_type %in% c("normal", "filler", "same")) 
 #7 participants excluded and 1531 trials
 
+save(arch_final, file = here("archival_KBH_anonimyzed/arch_final.Rda"))
 
-save(arch_final, file = here("clean_data/arch_final.Rda"))`
 ```

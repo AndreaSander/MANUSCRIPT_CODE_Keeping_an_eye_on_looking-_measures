@@ -1,0 +1,118 @@
+"0","eye_data_arch<- rbind(eye_data_comp,eye_data_mix_clean,eye_data_learn,eye_data_cogmisp)"
+"0","eye_data_arch <- clean_names(eye_data_arch) %>%"
+"0","  mutate(studio_project_name = str_replace(studio_project_name, ""_"", ""-"")) #change Mix names to have hyphen instead of underscore so they merge correctly later"
+"2","mutate: changed 1,305,672 values (43%) of 'studio_project_name' (0 new NA)
+"
+"0","#save(eye_data_arch, file = here(""R Analyses/Eye_data/eye_data_arch2.Rda""))"
+"0",""
+"0","#Check potential issues with the merge"
+"0","setdiff(Demo_arch$recording_name, eye_data_arch$recording_name) # all the rows that are different correspond to data that has already been identified as missing from tobii"
+"1"," [1]"
+"1"," ""LearnMix36_S23_80436000_E2"""
+"1"," ""CogMisp24_S36_547968000""   "
+"1"," ""CompMix36_S23_80436000_F2"" "
+"1","
+"
+"1"," [4]"
+"1"," ""Mix_14_S03""                "
+"1"," ""Mix_14_S06""                "
+"1"," ""Mix_20_S09""                "
+"1","
+"
+"1"," [7]"
+"1"," ""Mix_20_S10""                "
+"1"," ""Mix_20_S11""                "
+"1"," ""Mix_20_S12""                "
+"1","
+"
+"1","[10]"
+"1"," ""Mix_20_S15""                "
+"1"," ""Mix_20_S46""                "
+"1","
+"
+"0","setdiff(eye_data_arch$recording_name, Demo_arch$recording_name) # 0 so all good!"
+"1","character(0)
+"
+"0","#Remove attention getters and blank media name rows"
+"0","arch_comp_data <- eye_data_arch %>%"
+"0","  filter(str_detect(media_name, ""attention"")==FALSE & "
+"0","           str_detect(media_name, ""Getter"")==FALSE & "
+"0","           str_detect(media_name, ""getter"")==FALSE & "
+"0","           str_detect(media_name, ""Attention"") == FALSE) %>%"
+"0","  filter(!is.na(media_name)) %>%"
+"0","  group_by(recording_name) %>%"
+"0","  mutate(trial_number = rleid(media_name)) %>% #create trial number"
+"0","  full_join(Demo_arch) %>% #11 unmatched rows as identified with setdiff above (all identified as missing from Tobii)"
+"0","  ungroup()"
+"2","filter: removed 1,071,433 rows (35%), 1,949,845 rows remaining
+"
+"2","filter: no rows removed
+"
+"2","group_by: one grouping variable (recording_name)
+"
+"2","mutate (grouped): new variable 'trial_number' (integer) with 36 unique values and 0% NA
+"
+"2","Joining with `by = join_by(recording_name)`"
+"2","full_join: added 17 columns (study_id, study_order, age_days, age_months, gender, …)
+"
+"2","           > rows only in x           0
+"
+"2","           > rows only in y          11
+"
+"2","           > matched rows     1,949,845
+"
+"2","           >                 ===========
+"
+"2","           > rows total       1,949,856
+"
+"2","ungroup: no grouping variables
+"
+"0","#Adding an Area of Interest column to the newly merged data frame"
+"0",""
+"0","#This reads in a previously created dataframe containing AOI information for each trial/order/study"
+"0","AOI<- read_excel(here(""archival_KBH_anonimyzed/AOI_maker.xlsx"")) %>%"
+"0","  clean_names() %>%"
+"0","  mutate(trial_number = as.integer(parse_number(trial_number)))"
+"2","mutate: converted 'trial_number' from character to integer (0 new NA)
+"
+"0","#Check potential issues with the merging"
+"0",""
+"0","setdiff(AOI$media_name, arch_comp_data$media_name) #0 no differences"
+"1","character(0)
+"
+"0","setdiff(arch_comp_data$media_name, AOI$media_name)# The differences are just from test trials from the ""learn"" experiment, for which we are only interested in the learning phase. So no problem."
+"1","[1]"
+"1"," ""FR_Walem_R.wmv"""
+"1"," ""FR_Teelo_L.wmv"""
+"1"," ""FR_Walem_L.wmv"""
+"1"," ""FR_Teelo_R.wmv"""
+"1"," ""EN_Walem_R.wmv"""
+"1"," ""EN_Teelo_L.wmv"""
+"1","
+"
+"1","[7]"
+"1"," ""EN_Walem_L.wmv"""
+"1"," ""EN_Teelo_R.wmv"""
+"1"," NA              "
+"1","
+"
+"0","arch_aoi_data <- left_join(arch_comp_data, AOI, by = c(""studio_project_name"", ""trial_number"", ""media_name"", ""studio_test_name"")) #All the rows were kept. No issues."
+"2","left_join: added 11 columns (target, distractor, target_x_min, target_x_max, target_y_min, …)
+"
+"2","           > rows only in x      73,541
+"
+"2","           > rows only in y  (        4)
+"
+"2","           > matched rows     1,876,315
+"
+"2","           >                 ===========
+"
+"2","           > rows total       1,949,856
+"
+"0","#calculate amount of trials pre-exclusions"
+"0","trial_n <- arch_aoi_data %>%"
+"0","  distinct(recording_name, trial_number,.keep_all = F)"
+"2","distinct: removed 1,944,996 rows (>99%), 4,860 rows remaining
+"
+"0","#4860 trials before exclusions"
+"0",""

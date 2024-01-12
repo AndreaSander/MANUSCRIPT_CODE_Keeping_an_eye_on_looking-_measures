@@ -1,0 +1,6 @@
+"0","load(here(""archival_KBH_anonimyzed/anonymized_eye_data/eye_data_comp.Rda""))"
+"0",""
+"0","eye_data_comp <- eye_data_comp %>%"
+"0","  select(all_of(keepcols))"
+"2","select: dropped 201 variables (ExportDate, StudioVersionRec, ParticipantName, RecordingDuration, RecordingResolution, …)
+"
