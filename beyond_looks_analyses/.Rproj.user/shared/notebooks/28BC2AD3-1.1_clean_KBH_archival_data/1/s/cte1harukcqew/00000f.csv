@@ -1,0 +1,5 @@
+"0","eye_data_learn <- eye_data_learn %>%
+  select(all_of(keepcols))
+"
+"2","select: dropped 392 variables (ExportDate, StudioVersionRec, RecordingDuration, RecordingResolution, PresentationSequence, …)
+"

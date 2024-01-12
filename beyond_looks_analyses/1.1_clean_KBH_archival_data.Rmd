@@ -65,20 +65,20 @@ save(Demo_arch, file = here("archival_KBH_anonimyzed/anonymized_demographic_data
 #Specify which columns to keep from many columns exported from TOBII
 keepcols <- c("RecordingName","MediaName", "RecordingDate", "LocalTimeStamp",
             "RecordingTimestamp","ValidityLeft","ValidityRight","GazePointX (ADCSpx)",
-            "GazePointY (ADCSpx)", "StudioProjectName", "StudioTestName") 
+            "GazePointY (ADCSpx)", "StudioProjectName", "StudioTestName", "PupilLeft", "PupilRight") 
 
 ```
 
 ### Read and select columns from first dataset codename "Learn"
 ```{r}
-load(here("anonymous_eye_data/eye_data_learn.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/eye_data_learn.Rda"))
 
 eye_data_learn <- eye_data_learn %>%
   select(all_of(keepcols))
 ```
 ### Read and select columns from second dataset codename "Cogmisp"
 ```{r}
-load(here("anonymous_eye_data/eye_data_cogmisp.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/eye_data_cogmisp.Rda"))
 
 eye_data_cogmisp <- eye_data_cogmisp %>%
   select(all_of(keepcols))
@@ -88,43 +88,43 @@ eye_data_cogmisp <- eye_data_cogmisp %>%
 #The eyedata from this studies was separated into multiple datasets
 ```{r}
 #Mix 1
-load(here("anonymous_eye_data/mix1.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix1.Rda"))
 
 mix1<- mix1 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix2
-load(here("anonymous_eye_data/mix2.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix2.Rda"))
 
 mix2<- mix2 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix3
-load(here("anonymous_eye_data/mix3.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix3.Rda"))
 
 mix3<- mix3 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix4
-load(here("anonymous_eye_data/mix4.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix4.Rda"))
 
 mix4<- mix4 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix5
-load(here("anonymous_eye_data/mix5.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix5.Rda"))
 
 mix5<- mix5 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix6
-load(here("anonymous_eye_data/mix6.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix6.Rda"))
 
 mix6<- mix6 %>%
   mutate(StudioTestName= as.character(StudioTestName))
 
 #Mix7
-load(here("anonymous_eye_data/mix7.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/mix7.Rda"))
 
 mix7<- mix7 %>%
   mutate(StudioTestName= as.character(StudioTestName))
@@ -230,7 +230,7 @@ eye_data_mix_clean <- eye_data_mix_studies
 
 ### Read and select columns from second dataset codename "Comp"
 ```{r}
-load(here("anonymous_eye_data/eye_data_comp.Rda"))
+load(here("archival_KBH_anonimyzed/anonymized_eye_data/eye_data_comp.Rda"))
 
 eye_data_comp <- eye_data_comp %>%
   select(all_of(keepcols))
