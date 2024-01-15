@@ -17,8 +17,7 @@ library(Hmisc)
 library(corrplot)
 library(tidyverse)
 
-load(here("clean_data/arch_final.Rda"))
-
+load(here("archival_KBH_anonimyzed/arch_final.Rda"))
 ```
 
 
