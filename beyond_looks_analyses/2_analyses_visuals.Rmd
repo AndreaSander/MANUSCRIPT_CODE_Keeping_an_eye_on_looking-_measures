@@ -207,7 +207,12 @@ ungroup()%>%
 
 #10. Pupil dilation
 #Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
-#I need the pupil data for this
+
+pupil_dilation <- kbh_data_clean %>%
+  filter(noun_onset>= -200 & noun_onset <= 500)%>%
+mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
+                                TRUE ~ "post_onset"))
+
 
 #11. Duration of first look
 ### Duration of the first look recorded toward a particular AOI.
