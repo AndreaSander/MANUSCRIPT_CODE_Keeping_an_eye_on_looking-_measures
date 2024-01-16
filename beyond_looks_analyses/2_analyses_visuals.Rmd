@@ -207,11 +207,17 @@ ungroup()%>%
 
 #10. Pupil dilation
 #Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
+#In Liz's paper they contrasted time slice by time slice across two conditions, but here we don't have switched and same language conditions. I'll do average size at baseline and avg size after noun onset for now. But then talk with team about it.
 
-pupil_dilation <- kbh_data_clean %>%
+
+pupil_dilation_right <- kbh_data_clean %>%
   filter(noun_onset>= -200 & noun_onset <= 500)%>%
 mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
-                                TRUE ~ "post_onset"))
+                                TRUE ~ "post_onset")) %>%
+  group_by(subject_id, recording_name, trial_number, media_name, pupil_period)%>%
+  summarise(mean(pupil_right)) %>% #remove na values to not get NA as mean. Maybe add left pupil here too?
+  pivot_wider(names_from = pupil_period, values_from = "mean(pupil_right)") %>%
+  mutate(pupil_size_difference = post_onset - baseline)
 
 
 #11. Duration of first look
