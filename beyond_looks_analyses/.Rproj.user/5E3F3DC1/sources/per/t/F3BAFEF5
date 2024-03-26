@@ -1,28 +1,28 @@
 {
-    "id": "73E8BD89",
+    "id": "F3BAFEF5",
     "path": "~/Research/Beyond_looks/beyond_looks_analyses/2_analyses_visuals.Rmd",
     "project_path": "2_analyses_visuals.Rmd",
     "type": "r_markdown",
-    "hash": "385519416",
+    "hash": "2086005801",
     "contents": "",
     "dirty": false,
-    "created": 1698256497523.0,
+    "created": 1711478998734.0,
     "source_on_save": false,
-    "relative_order": 1,
+    "relative_order": 2,
     "properties": {
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "91,0",
-        "scrollLine": "76",
-        "last_setup_crc32": ""
+        "cursorPosition": "250,0",
+        "scrollLine": "235",
+        "last_setup_crc32": "a95d9c7abb338d19"
     },
     "folds": "",
-    "lastKnownWriteTime": 1704920542,
+    "lastKnownWriteTime": 1711486158,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1705089813120,
+    "last_content_update": 1711486158994,
     "read_only": false,
     "read_only_alternatives": []
 }

@@ -28,5 +28,7 @@
 "0","  ungroup()%>%"
 "0","  group_by(studio_test_name, eng_exp, fre_exp)%>%"
 "0","  mutate(trial_lang = case_when(str_detect(studio_test_name,""E"")~ ""english"","
-"0","                                str_detect(studio_test_name, ""F"")~ ""french""))"
+"0","                                str_detect(studio_test_name, ""F"")~ ""french"")) %>%"
+"0","  mutate(exp_to_target_lang = case_when(trial_lang == ""english"" ~ eng_exp,"
+"0","                                        trial_lang == ""french"" ~ fre_exp))"
 "0",""

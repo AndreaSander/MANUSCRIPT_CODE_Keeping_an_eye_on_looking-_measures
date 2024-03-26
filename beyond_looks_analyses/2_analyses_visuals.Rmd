@@ -87,8 +87,6 @@ prop_looking <- kbh_data_clean %>%
 #2. Proportion looking difference
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
-#calculated by averaging the six item-pair mean difference scores for each subject. Calculated the difference in fixation proportions for each item-pair: the proportion of time that infants looked at one video when it was the target, minus the proportion of time they looked at it when it was the distracter.
-
 #First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not? 
 #No help for it. I will need to know what was the image pair in the screen. NEED TO GO BACK TO THE DATA
 
@@ -103,8 +101,7 @@ prop_looking_diff <- kbh_data_clean %>%
                                  target_side == "R"~ "Distractor")) %>%
 group_by(recording_name, media_name, right_image, left_image) %>%
     summarise(samples_total=sum(target==TRUE, target==FALSE ),
-            samples_target=sum(target)) %>%
-  mutate(proportions = samples_target/samples_total)
+            samples_target=sum(target)) 
   
 #3. Number of fixations
 ### Total number of fixations to the target during the window of analyses.
@@ -210,14 +207,45 @@ ungroup()%>%
 #In Liz's paper they contrasted time slice by time slice across two conditions, but here we don't have switched and same language conditions. I'll do average size at baseline and avg size after noun onset for now. But then talk with team about it.
 
 
-pupil_dilation_right <- kbh_data_clean %>%
+pupil_dilation <- kbh_data_clean %>%
   filter(noun_onset>= -200 & noun_onset <= 500)%>%
 mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
-                                TRUE ~ "post_onset")) %>%
-  group_by(subject_id, recording_name, trial_number, media_name, pupil_period)%>%
-  summarise(mean(pupil_right)) %>% #remove na values to not get NA as mean. Maybe add left pupil here too?
-  pivot_wider(names_from = pupil_period, values_from = "mean(pupil_right)") %>%
-  mutate(pupil_size_difference = post_onset - baseline)
+                                TRUE ~ "post_onset"))%>% 
+  select(recording_timestamp, subject_id, recording_name, trial_number, media_name, pupil_period, pupil_right, pupil_left) %>%
+  drop_na(pupil_right) %>%
+  drop_na(pupil_left)
+
+pupil_dilation$two_pupil_mean <- rowMeans(pupil_dilation[c("pupil_right", "pupil_left")]) #Adding a mean between left and right pupil.
+
+#The next steps are confusing to me.Should we average baseline pupil? Should we contrast each post onset time slice to a partricular baseline time slice? We could use mean dilation, peak dilation (or peak amplitude), and/or peak latency (i.e., the time between onset and peak pupil dilation). The problem with mean dilation is that the baseline has less sampling than the post-onset. Could we do peak dilation of baseline vs. peak dilation post onset? Or peak dilation but from which baseline point? from peak? We will for sure do GCA's as extra analyses
+
+#Peak dilation
+peak_dilation <- pupil_dilation %>%
+  ungroup()%>%
+  group_by(recording_name, media_name, pupil_period) %>%
+  summarise(max(two_pupil_mean)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="max(two_pupil_mean)")%>%
+  mutate(peak_pupil_size_difference = post_onset - baseline) #difference in peak pupil points
+
+  
+#Mean dilation
+mean_dilation <- pupil_dilation %>%
+  ungroup() %>%
+  group_by(recording_name, media_name, pupil_period) %>%
+  summarise(mean(two_pupil_mean)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="mean(two_pupil_mean)")%>%
+  mutate(mean_pupil_size_difference = post_onset - baseline) #difference in means
+
+
+#peak latency
+peak_pupil_latency <- pupil_dilation %>%
+  ungroup()%>%
+  group_by(recording_name, media_name, pupil_period) %>%
+  slice(which.max(two_pupil_mean)) %>%
+  select(recording_name, media_name, pupil_period, peak_time_stamp = recording_timestamp) %>%
+ #Slice is giving me only the max meassures of pupil, then I am selecting the timestamp corresponding to the max measures by baseline versus post_noun onset
+ pivot_wider(names_from = pupil_period, values_from =peak_time_stamp) %>%
+  mutate(peak_pupil_size_latency = post_onset - baseline) #time between baseline peak and post onset peak.
 
 
 #11. Duration of first look
