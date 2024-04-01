@@ -15,6 +15,7 @@ library(dplyr)
 library(stringr)
 library(Hmisc)
 library(corrplot)
+library(zoo)
 library(tidyverse)
 
 load(here("archival_KBH_anonimyzed/arch_final.Rda"))
@@ -198,9 +199,27 @@ ungroup()%>%
 #I guess here is by subject the mean duration. But check on the paper.
 
 
-#9. Proportion of fixation duration
-#Proportion of all periods of fixation during the window of analyses within a trial.
-#I guess this means like 3 periods of fixation out of 10 periods?
+#9. Proportion of fixation duration (better named target divergence time)
+#Mean proportional of fixations to target vs. mean proportional of fixations to distracter in each time slice (theirs was 10ms,our sampling is 16 so we could do every 48ms slice, so every 3 of our slices, because with only 2 slices the means are pretty much 1, 0, and 0.5), then point by point t-test and then report the earliest time at which a minimum of 5 consecutive t tests indicated a difference significant difference between fixations to target and fixations to disctracter.I suppose this earliest time will be our DV [p<.05, probably bonferroni corrected for multiple comparisons).
+
+#Step 1 : calculate the mean proportional every 48ms slice
+
+kbh_clean_w_distractor <- kbh_data_clean %>%
+  mutate(distractor = case_when(target == FALSE ~ TRUE,
+                                TRUE ~ FALSE))
+
+mean_proportions <- kbh_clean_w_distractor %>%
+  mutate(mean_proportion_target =  rollmean(target, k = 3, fill = NA, align = "right")) %>%
+  mutate(mean_proportion_distractor =  rollmean(distractor, k = 2, fill = NA, align = "right"))
+
+#Above we're using rollmean() from the zoo package to calculate the rolling mean of the 'column' every two rows.
+#k = 2 specifies that we want to calculate the mean every 2 rows.
+#fill = NA specifies that we want to fill missing values with NA.
+
+
+# I can't find a way to calculate t tests row-wise that does not absolutely destroy my computer's memory. Could download # BiocManager::install("genefilter") to run row-wise tests but is it worth it?
+
+
 
 #10. Pupil dilation
 #Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
