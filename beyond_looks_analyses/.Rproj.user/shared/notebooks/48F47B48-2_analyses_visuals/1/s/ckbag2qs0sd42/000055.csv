@@ -1,8 +1,0 @@
-"0","# Perform pairwise t-test for every pair of observations using apply
-p_values <- apply(mean_proportions, 1, function(row) {
-  perform_t_test(row[""mean_proportion_target""], row[""mean_proportion_distractor""])
-})
-"
-"2","Warning: argument is not numeric or logical: returning NA"
-"2","Error in t.test.default(x, y) : not enough 'x' observations
-"
