@@ -1,0 +1,28 @@
+{
+    "id": "6E42DAD6",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1712158600557.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "id": "df890821ffe14a968a3dbe605cab0419",
+        "name": "fixations",
+        "title": "fixations",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 2314885530450158965,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1712158600557,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,8 @@
+"0","fixations_total2 <- kbh_data_clean   %>%
+   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+   filter(!(lag(trackloss) == FALSE & trackloss == TRUE & lead(trackloss) == TRUE & lead(lead(trackloss))== FALSE))%>%  #This got rid of short tracklosses in a run
+filter(!(trackloss == TRUE & lag(trackloss) == FALSE & lead(trackloss) == FALSE))%>%
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  summarise(consecutive_target = count_consecutive_blocks(target))
+"
+"2","`summarise()` has grouped output by 'recording_name', 'subject_id', 'trial_number'. You can override using the `.groups` argument."

@@ -17,6 +17,7 @@ library(Hmisc)
 library(corrplot)
 library(zoo)
 library(tidyverse)
+library(eyetrackingR)
 
 load(here("archival_KBH_anonimyzed/arch_final.Rda"))
 ```
@@ -37,16 +38,21 @@ kbh_data_clean <- arch_final%>%
   rename(target_side=target, distractor_side=distractor,
          gaze_point_x= gaze_point_x_adc_spx, 
          gaze_point_y = gaze_point_y_adc_spx)%>%
-  filter(gaze_point_x>=0 & gaze_point_x<= 1920)%>% #keeps only observations that are in the screen
-  filter(gaze_point_y>=0 & gaze_point_y<=1200)%>%
-  filter(!is.na(gaze_point_x))%>% #gets rid of the observations where tobii didn't get any reading
-  filter(!is.na(gaze_point_y))%>%
-  filter(!is.na(validity_left)) %>%
-  filter(!is.na(validity_right)) %>%
-  filter(validity_left<= 1)%>%
-  filter(validity_right <= 1)%>%
+  mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
+                               gaze_point_x> 1920 ~ TRUE,
+                               gaze_point_y<0 ~ TRUE,
+                               gaze_point_y > 1200 ~ TRUE,
+                               is.na(gaze_point_x) ~ TRUE,
+                               is.na(gaze_point_y) ~ TRUE,
+                               is.na(validity_left) ~ TRUE,
+                               is.na(validity_right) ~ TRUE,
+                               validity_left > 1 ~ TRUE,
+                               validity_right > 1 ~ TRUE,
+                               TRUE~ FALSE)) %>% #MAKE VISUALIZATIONS ABOUT TRACKLOSS FOR SANITY CHECK
   mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
-                            TRUE~FALSE))
+                            TRUE~FALSE)) %>%
+  mutate(distractor = case_when(gaze_point_x >= distractor_x_min&gaze_point_x <= distractor_x_max&gaze_point_y >= distractor_y_min&gaze_point_y <= distractor_y_max~TRUE, 
+                                 TRUE ~ FALSE))
 
 #Create trial language column to describe the language in which the babies were tested
 kbh_data_clean <- kbh_data_clean %>%
@@ -62,34 +68,36 @@ kbh_data_clean <- kbh_data_clean %>%
 
 ```{r calculate all the different dependent variables}
 
-###### First, create variables that will be useful for the calculations below ##
+###### First, create variables that will be useful for the calculations below ## TRY TO DO IT IN THE SAME DATA SET
 distractor_initial_trials <- kbh_data_clean %>%
-  filter(noun_onset >= 260 & noun_onset <= 3000)%>%
-  mutate(initial_trial = case_when(
-    noun_onset >=260 & noun_onset <=360 & target==FALSE ~ "distractor_initial",
-    noun_onset >=260 & noun_onset <=360 & target==TRUE ~ "target_initial")
-) %>%
-  group_by(recording_name, subject_id, trial_number, media_name, initial_trial) %>% 
-  summarise() %>%
-  filter(initial_trial =="distractor_initial")
+  filter(noun_onset >= 260 & noun_onset <= 360) %>%
+  group_by(recording_name, trial_number, media_name) %>% 
+     summarise(
+    distractor_count = sum(distractor),
+    target_count = sum(target),
+    trackloss_count = sum(trackloss)
+     )%>%
+  mutate(distractor_initial = case_when(target_count >0 ~ FALSE,
+                                        distractor_count/(distractor_count+trackloss_count) >=0.5 ~ TRUE,
+                                        TRUE ~ FALSE))
 
-
+#We arfe considering distractor initial trials as trials where in the first 100 ms ofr the analyses window the child looked at the distractor at least 50% of the time and never looked to target.
 
 #1. Proportion looking to target
 
 prop_looking <- kbh_data_clean %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
   group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_to_target_lang)%>%
-  summarise(samples_total=sum(target==TRUE, target==FALSE ),
-            samples_target=sum(target))%>%
-  mutate(prop_looking= samples_target/samples_total) %>%
+  summarise(samples_target=sum(target),
+            samples_distractor=sum(distractor))%>%
+  mutate(prop_looking= samples_target/(samples_target + samples_distractor)) %>%
   ungroup()
 
-#2. Proportion looking difference
+#2. Proportion looking difference ---TO DOO---
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
 #First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not? 
-#No help for it. I will need to know what was the image pair in the screen. NEED TO GO BACK TO THE DATA
+#No help for it. I will need to know what was the image pair in the screen. NEED TO GO BACK TO THE DATA.
 
 
 prop_looking_diff <- kbh_data_clean %>%
@@ -108,18 +116,33 @@ group_by(recording_name, media_name, right_image, left_image) %>%
 ### Total number of fixations to the target during the window of analyses.
 #### Question: What is considered a fixation? --> In TOBII we kept only valid fixations (as in Mills-Smith, 2016), they also excluded by subject and by trial (which we will do).
 
-fixations_total <- kbh_data_clean  %>%
-  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-  filter(target == TRUE) %>%
-  group_by(recording_name, subject_id, trial_number, media_name) %>%
-  summarise(looking_to_target = sum(target==TRUE))
 
+#constum function to count how many consecutive blocks of looking to target there are each trial.
+count_consecutive_blocks <- function(x) {
+  r <- rle(x)
+  sum(r$values & r$lengths >= 12) #this would be 200ms 
+} 
+
+
+#we defined fixations as the number of consecutive runs within a trial where looks were in the target for at least 200ms while getting rid of short bouts of trackloss (17 to 38 ms)
+
+# Group by subject and summarize consecutive TRUE values in target column
+
+fixations_total <- kbh_data_clean   %>%
+   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+   filter(!(lag(trackloss) == FALSE & trackloss == TRUE & lead(trackloss) == TRUE & lead(lead(trackloss))== FALSE))%>%  #This got rid of short tracklosses in a run
+filter(!(trackloss == TRUE & lag(trackloss) == FALSE & lead(trackloss) == FALSE))%>%
+  group_by(recording_name, subject_id, trial_number, media_name) 
+  summarise(consecutive_target = count_consecutive_blocks(target))
+
+
+  
 #4. Correct first shift to target
 #On trials where infants were fixated on the distractor upon hearing the target word (i.e., distractor-initial trials), the number of first shifts to the target picture within the 300–1,800 ms window following target word onset, as a proportion of all distractor-initial trials.
 
 #Question: in Fernald 2006 they excluded looks after 1800, because they considered them outliers. What do we want to do here? Right now the proportions are quite high, because eventually they all switched within the window.
 
-
+#MAKE SURE FULL JOIN IS THE BEST OPTION AND MERGE THIS EARLIER
 first_shift_target <- full_join (kbh_data_clean, distractor_initial_trials) %>%
   
   #Only keeping trials where the subject was looking at the distracter before noun onset.
