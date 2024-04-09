@@ -63,6 +63,38 @@ kbh_data_clean <- kbh_data_clean %>%
   mutate(exp_to_target_lang = case_when(trial_lang == "english" ~ eng_exp,
                                         trial_lang == "french" ~ fre_exp))
 
+
+#Create an excel basic version of the data to manually add the yoked pair information and then to re-merge this info into the final data set
+
+arch_final_w_items<- arch_final %>%
+mutate(yolked_pair = case_when(
+  grepl("Ear|Spoon", media_name) & studio_project_name== "CompMix-36" ~"ear-spoon",
+  grepl("Apple|Toothbrush", media_name) & studio_project_name== "CompMix-36" ~"apple-toothbrush",
+  grepl("Fish|Duck", media_name) & studio_project_name== "CompMix-36" ~"fish-duck",
+  grepl("Sheep|Monkey", media_name) & studio_project_name== "CompMix-36" ~"sheep-monkey",
+  grepl("Dog|Bunny", media_name) & studio_project_name== "CompMix-36" ~"dog-bunny",
+  grepl("Hand|Door", media_name) & studio_project_name== "CompMix-36" ~"hand-door",
+  grepl("Pencil|Coat", media_name) & studio_project_name== "CompMix-36" ~"pencil-coat",
+ 
+   studio_project_name== "LearnMix-36"& media_name %in% 
+    c("FR_Single_ChienWalem_R.wmv", "FR_Single_LapinWalem_L.wmv", "EN_Single_DogWalem_R.wmv", "EN_Single_BunnyWalem_L.wmv", "FR_Single_LapinTeelo_R.wmv", "FR_Single_ChienTeelo_L.wmv","EN_Single_DogTeelo_L.wmv", "EN_Single_BunnyTeelo_R.wmv")
+  ~ "dog-bunny",
+  
+    studio_project_name== "LearnMix-36"& media_name %in% 
+    c("EN_Single_BunnyTeelo_L.wmv", "EN_Single_FishTeelo_L.wmv", "FR_Single_LapinTeelo_L.wmv", "FR_Single_PoissonTeelo_L.wmv","EN_Single_FishWalem_R.wmv", "EN_Single_BunnyWalem_R.wmv", "FR_Single_PoissonWalem_R.wmv", "FR_Single_LapinWalem_R.wmv")
+  ~ "fish-bunny",
+  
+      studio_project_name== "LearnMix-36"& media_name %in% c( "FR_Single_ChienWalem_L.wmv","FR_Single_PoissonWalem_L.wmv","EN_Single_FishWalem_L.wmv",
+"EN_Single_DogWalem_L.wmv", "FR_Single_PoissonTeelo_R.wmv", "FR_Single_ChienTeelo_R.wmv", "EN_Single_FishTeelo_R.wmv", "EN_Single_DogTeelo_R.wmv") 
+  ~ "fish-dog",
+  
+
+  TRUE~"OTHER"
+  )
+)
+
+
+
 ```
 
 
