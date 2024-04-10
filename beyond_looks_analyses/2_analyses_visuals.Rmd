@@ -64,7 +64,7 @@ kbh_data_clean <- kbh_data_clean %>%
                                         trial_lang == "french" ~ fre_exp))
 
 
-#Create an excel basic version of the data to manually add the yoked pair information and then to re-merge this info into the final data set
+#Add a column with the yolked pairs information---yoking info taken from lab server
 
 arch_final_w_items<- arch_final %>%
 mutate(yolked_pair = case_when(
@@ -75,7 +75,8 @@ mutate(yolked_pair = case_when(
   grepl("Dog|Bunny", media_name) & studio_project_name== "CompMix-36" ~"dog-bunny",
   grepl("Hand|Door", media_name) & studio_project_name== "CompMix-36" ~"hand-door",
   grepl("Pencil|Coat", media_name) & studio_project_name== "CompMix-36" ~"pencil-coat",
- 
+  grepl("Froggy|Cow", media_name) & studio_project_name== "CompMix-36" ~"froggy-cow",
+  
    studio_project_name== "LearnMix-36"& media_name %in% 
     c("FR_Single_ChienWalem_R.wmv", "FR_Single_LapinWalem_L.wmv", "EN_Single_DogWalem_R.wmv", "EN_Single_BunnyWalem_L.wmv", "FR_Single_LapinTeelo_R.wmv", "FR_Single_ChienTeelo_L.wmv","EN_Single_DogTeelo_L.wmv", "EN_Single_BunnyTeelo_R.wmv")
   ~ "dog-bunny",
@@ -89,11 +90,48 @@ mutate(yolked_pair = case_when(
   ~ "fish-dog",
   
 
+  grepl("banC|girC", media_name) & studio_project_name== "CogMisp-24"  ~"banana-giraffe",
+  grepl("monC|butC", media_name) & studio_project_name=="CogMisp-24" ~"monkey-butterfly",
+  grepl("winC|mouC", media_name) & studio_project_name== "CogMisp-24" ~"window-mouth",
+  grepl("pizC|tabC", media_name) & studio_project_name== "CogMisp-24" ~"pizza-table",
+  grepl("choC|bowC", media_name) & studio_project_name== "CogMisp-24" ~"chocolate-bowl",
+  grepl("fooC|cooC", media_name) & studio_project_name== "CogMisp-24"~"cookie-foot",
+
+
+  grepl("Toothbrush|Apple|Brosse|Pomme", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"toothbrush-apple",
+  grepl("Ear|Spoon|Oreille|Cuillere", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"ear-spoon",
+  grepl("Mouth|Door|Bouche|Porte", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"mouth-door",
+  grepl("Bird|Hand|Main", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"bird-hand",
+  grepl("Dog|Book|Chien|Livre", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"dog-book",
+  grepl("Cookie|Foot|Biscuit|Pied", media_name) & studio_project_name %in% c("Mix-20","Mix-14") ~"cookie-foot",
+
   TRUE~"OTHER"
   )
 )
 
 
+
+#Adding a column with word tested information
+arch_final_w_items<- arch_final_w_items %>%
+  mutate(target_word= case_when(
+  grepl("Ear", media_name) ~"ear",
+  grepl("Spoon", media_name) ~"spoon",
+  grepl("Dog", media_name) ~"dog",
+  grepl("Cookie"|"CooC", media_name) ~"cookie",
+  grepl("Mouth"|"mouC", media_name) ~"mouth",
+  grepl("Book", media_name) ~"book",
+  grepl("Foot"|"fooC", media_name) ~"foot",
+  grepl("Bird", media_name) ~"bird",
+  grepl("Hand", media_name) ~"hand",
+  grepl("Toothbrush", media_name) ~"toothbrush",
+  grepl("Apple", media_name) ~"apple",
+  grepl("Fish", media_name) ~"fish",
+  grepl("Bunny", media_name) ~"bunny",
+  grepl("Monkey"|"monC", media_name) ~"monkey",
+  grepl("butC", media_name) ~"buterfly",
+  TRUE~"OTHER"
+  )
+)
 
 ```
 
