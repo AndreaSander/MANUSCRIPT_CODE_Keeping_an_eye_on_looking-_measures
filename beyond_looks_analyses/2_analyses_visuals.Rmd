@@ -66,7 +66,7 @@ kbh_data_clean <- kbh_data_clean %>%
 
 #Add a column with the yolked pairs information---yoking info taken from lab server
 
-arch_final_w_items<- arch_final %>%
+kbh_w_items<- kbh_data_clean %>%
 mutate(yolked_pair = case_when(
   grepl("Ear|Spoon", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"ear-spoon",
   grepl("Apple|Toothbrush", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"apple-toothbrush",
@@ -139,7 +139,7 @@ mutate(yolked_pair = case_when(
 
 
 #Adding a column with word tested information
-arch_final_w_items<- arch_final_w_items %>%
+kbh_w_items<- kbh_w_items %>%
   mutate(target_word= case_when(
   grepl("Ear", media_name) ~"ear",
   grepl("Spoon", media_name) ~"spoon",
@@ -248,24 +248,26 @@ prop_looking <- kbh_data_clean %>%
   mutate(prop_looking= samples_target/(samples_target + samples_distractor)) %>%
   ungroup()
 
-#2. Proportion looking difference ---TO DOO---
+#2. Proportion looking difference 
+#Now it is done but there is something strange happening with learnmix items--to check.
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
-#First we need to know whether all the pairs we have in our data were yolked, and exclude the ones that were not? 
-#No help for it. I will need to know what was the image pair in the screen. NEED TO GO BACK TO THE DATA.
+#Question if two studies have the same item pair (e.g. dog-apple), should they still be grouped as the same yolked pair? They might have had different carrier sentences but, the words are the same.
+#Question: should it be absolute difference or true difference?
 
 
-prop_looking_diff <- kbh_data_clean %>%
-  filter(noun_onset>= 360 & noun_onset <= 3000)%>%
+prop_looking_diff <- kbh_w_items %>%
   ungroup()%>%
-  select(recording_name, subject_id, trial_number, media_name, target_side, target)%>%
-  mutate(right_image = case_when(target_side == "R" ~ "Target",
-                                 target_side == "L"~ "Distractor")) %>%
-   mutate(left_image = case_when(target_side == "L" ~ "Target",
-                                 target_side == "R"~ "Distractor")) %>%
-group_by(recording_name, media_name, right_image, left_image) %>%
-    summarise(samples_total=sum(target==TRUE, target==FALSE ),
-            samples_target=sum(target)) 
+  filter(noun_onset>= 360 & noun_onset <= 3000)%>%
+  select(recording_name, recording_timestamp, yolked_pair, target_word, target, distractor)%>%
+  group_by(yolked_pair, target_word) %>%
+    summarise(samples_target=sum(target),
+            samples_distractor=sum(distractor))%>%
+  mutate(prop_looking_target= samples_target/(samples_target + samples_distractor)) %>%
+  mutate(prop_looking_distractor= samples_distractor/(samples_target + samples_distractor)) %>%
+  mutate(prop_look_diff = prop_looking_target-prop_looking_distractor)
+  
+
   
 #3. Number of fixations
 ### Total number of fixations to the target during the window of analyses.
