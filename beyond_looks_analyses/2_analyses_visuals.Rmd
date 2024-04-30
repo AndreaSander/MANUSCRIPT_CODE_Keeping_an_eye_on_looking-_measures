@@ -463,24 +463,11 @@ ungroup()%>%
 
 
 #9. Proportion of fixation duration (better named target divergence time)
-#Mean proportional of fixations to target vs. mean proportional of fixations to distracter in each time slice (theirs was 10ms,our sampling is 16 so we could do every 48ms slice, so every 3 of our slices, because with only 2 slices the means are pretty much 1, 0, and 0.5), then point by point t-test and then report the earliest time at which a minimum of 5 consecutive t tests indicated a difference significant difference between fixations to target and fixations to disctracter.I suppose this earliest time will be our DV [p<.05, probably bonferroni corrected for multiple comparisons).
+#The target divergence time measure is defined as the time at which fixations to the “target” object diverges from fixations to the “distractor”. point-by-point t-tests at each 10 ms bin between mean looking proportions to the target object and mean looking proportions to the distractor object were calculated. the time point reported is the earliest time point that a minimum of five consecutive two tailed t-tests with an alpha level of p < .05 indicate a significant difference between the fixation to the target compared to distractor
 
-#Step 1 : calculate the mean proportional every 48ms slice
-
-kbh_clean_w_distractor <- kbh_data_clean %>%
-  mutate(distractor = case_when(target == FALSE ~ TRUE,
-                                TRUE ~ FALSE))
-
-mean_proportions <- kbh_clean_w_distractor %>%
-  mutate(mean_proportion_target =  rollmean(target, k = 3, fill = NA, align = "right")) %>%
-  mutate(mean_proportion_distractor =  rollmean(distractor, k = 2, fill = NA, align = "right"))
-
-#Above we're using rollmean() from the zoo package to calculate the rolling mean of the 'column' every two rows.
-#k = 2 specifies that we want to calculate the mean every 2 rows.
-#fill = NA specifies that we want to fill missing values with NA.
+#What we need to do in our research: By participant, collapsing across trials average prop looking to target and average proportion looking to distractor eavery 17ms (or whatever or bin size is). So at that stage the participant has 2 columns with 8 rows (1 row per trial), one column for the average prop looks to target, one for the average prop looks to distractor. THEN we do a t test between column A and B, so we get column C that again has 8 rows (this is a rowwise t test, bonferroni corrected I guess). Then we summarize to get a single number per participant. that number is the ms slice at which 5 (?) t-tests are p>0.05.
 
 
-# I can't find a way to calculate t tests row-wise that does not absolutely destroy my computer's memory. Could download # BiocManager::install("genefilter") to run row-wise tests but is it worth it?
 
 
 
