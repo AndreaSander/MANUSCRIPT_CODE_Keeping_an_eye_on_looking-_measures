@@ -64,10 +64,10 @@ kbh_data_clean <- kbh_data_clean %>%
                                         trial_lang == "french" ~ fre_exp))
 
 
-#Add a column with the yolked pairs information---yoking info taken from lab server
+#Add a column with the yoked pairs information---yoking info taken from lab server
 
 kbh_w_items<- kbh_data_clean %>%
-mutate(yolked_pair = case_when(
+mutate(yoked_pair = case_when(
   grepl("Ear|Spoon", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"ear-spoon",
   grepl("Apple|Toothbrush", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"apple-toothbrush",
   grepl("Fish|Duck", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"fish-duck",
@@ -78,7 +78,7 @@ mutate(yolked_pair = case_when(
   grepl("Froggy|Cow", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"froggy-cow",
  
   
-    grepl("Ear|Spoon", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"oreille-cuillere",
+  grepl("Ear|Spoon", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"oreille-cuillere",
   grepl("Apple|Toothbrush", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"pomme-brosse a dents",
   grepl("Fish|Duck", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"poisson-canard",
   grepl("Sheep|Monkey", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"mouton-singe",
@@ -125,7 +125,7 @@ mutate(yolked_pair = case_when(
   grepl("Dog|Book", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"dog-book",
   grepl("Cookie|Foot", media_name) & studio_project_name %in% c("Mix-20","Mix-14") ~"cookie-foot",
 
-  grepl("Brosse|Pomme", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"brosse a dents-pomme",
+  grepl("Brosse|Pomme", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"pomme-brosse a dents",
   grepl("Oreille|Cuillere", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"oreille-cuillere",
   grepl("Bouche|Porte", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"bouche-porte",
   grepl("Hand|Main", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"oisseau-main",
@@ -141,9 +141,9 @@ mutate(yolked_pair = case_when(
 #Adding a column with word tested information
 kbh_w_items<- kbh_w_items %>%
   mutate(target_word= case_when(
-    grepl("monC", media_name) ~"monkey",
-  grepl("butC", media_name) ~"buterfly",
-  grepl("Door", media_name)  & grepl("Mix", studio_project_name) ~"door",
+  grepl("monC", media_name) ~"monkey",
+  grepl("butC", media_name) ~"butterfly",
+  grepl("Door", media_name) & grepl("Mix", studio_project_name) & grepl("Eng|ENG", media_name) ~"door",
   grepl("banC", media_name) ~"banana",
   grepl("winC", media_name) ~"window",
   grepl("pizC", media_name) ~"pizza",
@@ -154,7 +154,7 @@ kbh_w_items<- kbh_w_items %>%
   grepl("tabC", media_name) ~"table",
   
   
-    grepl("Oreille", media_name)  & grepl("Mix", studio_project_name) ~"oreille",
+  grepl("Oreille", media_name)  & grepl("Mix", studio_project_name) ~"oreille",
   grepl("Cuillere", media_name)  & grepl("Mix", studio_project_name) ~"cuillere",
   grepl("Chien", media_name)  & grepl("Mix", studio_project_name) ~"chien",
   grepl("Biscuit", media_name)  & grepl("Mix", studio_project_name) ~"biscuit",
@@ -249,7 +249,9 @@ kbh_w_items<- kbh_w_items %>%
   ~ "fish",
   
   TRUE~"OTHER"
-  )
+  ),
+distractor_word = str_remove(yoked_pair, target_word),
+distractor_word = str_remove(distractor_word, "-")
 )
 
 ```
@@ -258,7 +260,7 @@ kbh_w_items<- kbh_w_items %>%
 ```{r calculate all the different dependent variables}
 
 ###### First, create variables that will be useful for the calculations below ## TRY TO DO IT IN THE SAME DATA SET
-initial_looks <- kbh_data_clean %>%
+initial_looks <- kbh_w_items %>%
   filter(noun_onset >= 260 & noun_onset < 360) %>%
   group_by(recording_name, trial_number, media_name) %>% 
      summarise(
@@ -266,22 +268,27 @@ initial_looks <- kbh_data_clean %>%
     target_count = sum(target),
     trackloss_count = sum(trackloss)
      )%>%
-  mutate(initial_look = case_when(target_count >0 ~ "target",
-                                        distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
-                                        target_count/(target_count +trackloss_count) >=0.5 ~ "target",
-                                        TRUE ~ "neither"))
+  mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
+                                  distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
+                                  TRUE ~ "neither"))
 
-kbh_data_clean <- left_join(kbh_data_clean, initial_looks, by= c("recording_name", "trial_number", "media_name"))
+kbh_w_items <- left_join(kbh_w_items, initial_looks, by= c("recording_name", "trial_number", "media_name"))
 
-#We arfe considering distractor initial trials as trials where in the first 100 ms ofr the analyses window the child looked at the distractor at least 50% of the time and never looked to target.
+#We are considering distractor initial trials as trials where in the first 100 ms ofr the analyses window the child looked at the distractor at least 50% of the time and never looked to target.
+
+
+#Mix 20 S052 has 23 rows for trials other than trial 1 with no data—remove these here, try to figure out why this happened
+
+kbh_w_items <- kbh_w_items %>%
+  filter(!(recording_name == "Mix_20_S52" & trial_number > 1))
 
 #1. Proportion looking to target
 
-prop_looking <- kbh_data_clean %>%
+prop_looking <- kbh_w_items %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
   group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_to_target_lang)%>%
-  summarise(samples_target=sum(target),
-            samples_distractor=sum(distractor))%>%
+  summarise(samples_target=sum(target, na.rm = T),
+            samples_distractor=sum(distractor, na.rm = T))%>%
   mutate(prop_looking= samples_target/(samples_target + samples_distractor)) %>%
   ungroup()
 
@@ -289,21 +296,25 @@ prop_looking <- kbh_data_clean %>%
 #Now it is done but there is something strange happening with compmix items--to check.
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
-#Question if two studies have the same item pair (e.g. dog-apple), should they still be grouped as the same yolked pair? They might have had different carrier sentences but, the words are the same.
+#Question if two studies have the same item pair (e.g. dog-apple), should they still be grouped as the same yoked pair? They might have had different carrier sentences but, the words are the same.
 #Question: should it be absolute difference or true difference?
 
 
 prop_looking_diff <- kbh_w_items %>%
   ungroup()%>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  select(recording_name, media_name, recording_timestamp, yolked_pair, target_word, target, distractor)%>%
-  group_by(yolked_pair, target_word, media_name) %>%
-    summarise(samples_target=sum(target),
-            samples_distractor=sum(distractor))%>%
-  mutate(prop_looking_target= samples_target/(samples_target + samples_distractor)) %>%
-  mutate(prop_looking_distractor= samples_distractor/(samples_target + samples_distractor)) %>%
-  mutate(prop_look_diff = prop_looking_target-prop_looking_distractor)
-  
+  select(recording_name, recording_timestamp, target_word, distractor_word, target, distractor)%>%
+  pivot_longer(c(target_word, distractor_word), names_to = "word_type", values_to = "word") %>%
+  mutate(looking = case_when(word_type == "target_word" & target == TRUE ~ TRUE,
+                             word_type == "distractor_word" & distractor == TRUE ~ TRUE,
+                             TRUE ~ FALSE)) %>%
+  group_by(recording_name, word_type, word) %>%
+  #what percent of the time when x is target are kids looking at x, what percent of the time when x is distractor are kids looking at x
+  summarise(prop_looking = sum(looking == T)/n()) %>%
+  pivot_wider(names_from = "word_type", values_from = "prop_looking") %>%
+  filter(!is.na(target_word) & !is.na(distractor_word)) %>%
+  mutate(prop_looking_diff = target_word - distractor_word) %>%
+  select(recording_name, target_word = word, prop_looking_diff)
 
   
 #3. Number of fixations
@@ -320,23 +331,30 @@ count_consecutive_blocks <- function(x) {
 
 #we defined fixations as the number of consecutive runs within a trial where looks were in the target for at least 200ms while getting rid of short bouts of trackloss (17 to 38 ms)
 
-# Group by subject and summarize consecutive TRUE values in target column
+# Group by subject and summarize consecutive TRUE values in target column - we are counting how many consecutive groups of 12 rows of TRUE target looks there are per trial, which is around 200 ms of looking. We are counting each group of 200 ms of looking as one fixation.
 
-fixations_total <- kbh_data_clean   %>%
-   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-   filter(!(lag(trackloss) == FALSE & trackloss == TRUE & lead(trackloss) == TRUE & lead(lead(trackloss))== FALSE))%>%  #This got rid of short tracklosses in a run
-filter(!(trackloss == TRUE & lag(trackloss) == FALSE & lead(trackloss) == FALSE))%>%
-  group_by(recording_name, subject_id, trial_number, media_name) 
-  summarise(consecutive_target = count_consecutive_blocks(target))
-
+fixations_total <- kbh_w_items   %>%
+  ungroup() %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  group_by(recording_name, trial_number) %>%
+  mutate(trackloss_group_id = data.table::rleid(trackloss)) %>%
+  group_by(trackloss_group_id, recording_name, trial_number) %>%
+  mutate(num_consec_trackloss_rows = n()) %>%
+  ungroup() %>%
+  filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows > 2)) %>%
+  group_by(recording_name, trial_number) %>% 
+  mutate(row = row_number(), 
+         multi_of_twelve = case_when(row %% 12 == 0 & target == TRUE ~ "fixation")) %>% 
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  summarise(consecutive_target = sum(multi_of_twelve == "fixation", na.rm = T))
 
   
 #4. Correct first shift to target
 #On trials where infants were fixated on the distractor upon hearing the target word (i.e., distractor-initial trials), the number of first shifts to the target picture within the 300–1,800 ms window following target word onset, as a proportion of all distractor-initial trials.
   
 
-
-first_shift_target <- kbh_data_clean %>%
+first_shift_target <- kbh_w_items %>%
+  ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 1800) %>% #Keeping the shorter window to be consistent with Fernald
 
   
@@ -349,31 +367,30 @@ first_shift_target <- kbh_data_clean %>%
                                    initial_look == "distractor" & target >0 ~ TRUE,
                                    TRUE~FALSE)) #Making a column to calculate correct shifts. We defined correct shift as never looking to the distractor on target initial trial, or switching to the taget on distractor initial trials
 
-  prop_shifts_distractor_initial <- first_shift_target %>%
+prop_shifts_distractor_initial <- first_shift_target %>%
     filter(initial_look == "distractor") %>%
     group_by(recording_name) %>%
-    summarise(sum (isTRUE(correct_shift))/sum((isTRUE(correct_shift)+ !isTRUE(correct_shift))))
+    summarise(prop_shift_distractor_initial = sum(correct_shift == TRUE)/n())
   
-    prop_shifts_target_initial <- first_shift_target %>%
+prop_shifts_target_initial <- first_shift_target %>%
     filter(initial_look == "target") %>%
     group_by(recording_name) %>%
-    summarise(sum (isTRUE(correct_shift))/sum((isTRUE(correct_shift)+ !isTRUE(correct_shift))))
+    summarise(prop_shift_target_initial = sum(correct_shift == TRUE)/n())
   
 
 #5. Reaction time
-#Question: How do we define distractor initial trials. Lets define a 100ms pre-analyses window from 260 post noun onset to 360 (the start of analyses window)
 
-RT <- full_join (kbh_data_clean, distractor_initial_trials) %>%
-  filter(initial_trial=="distractor_initial") %>%
-  filter(noun_onset >= 360 & noun_onset <= 3000)%>%
-mutate(first_true = ifelse(target == TRUE & lag(target) == FALSE, 1, 0)) %>%
-  filter(first_true == 1) %>%
-   group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
-  summarise() %>%
-    arrange(recording_name, trial_number, by_group = T) %>%
-  mutate(number_of_trial_instance = row_number()) %>%  #I only want to keep the first instance of switch because I am only interested in the latency of the very first switch towards target.
-filter(number_of_trial_instance == 1) %>%
-  mutate(latency_to_switch = noun_onset - 360)
+#do we want the latency from noun onset (0) or from window of analysis(360)? Right now using window of analysis
+
+RT <- kbh_w_items %>%
+  ungroup() %>%
+  filter(noun_onset >= 360 & noun_onset <= 1800) %>% #Keeping the shorter window to be consistent with Fernald
+    #Grouping and summarizing to get by subject by trial flagging of whether there was switching or not.
+  filter(initial_look == "distractor") %>%
+  group_by(recording_name, subject_id, trial_number, media_name, initial_look, target) %>%
+  slice_head() %>%
+  filter(target == TRUE) %>%
+  mutate(latency_to_switch = noun_onset - 360) 
 
 
 #6. Total number of switches between AOIs
