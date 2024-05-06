@@ -65,7 +65,7 @@ save(Demo_arch, file = here("archival_KBH_anonimyzed/anonymized_demographic_data
 #Specify which columns to keep from many columns exported from TOBII
 keepcols <- c("RecordingName","MediaName", "RecordingDate", "LocalTimeStamp",
             "RecordingTimestamp","ValidityLeft","ValidityRight","GazePointX (ADCSpx)",
-            "GazePointY (ADCSpx)", "StudioProjectName", "StudioTestName", "PupilLeft", "PupilRight") 
+            "GazePointY (ADCSpx)", "StudioProjectName", "StudioTestName", "PupilLeft", "PupilRight", "KeyPressEvent", "StudioEvent") 
 
 ```
 
@@ -73,7 +73,7 @@ keepcols <- c("RecordingName","MediaName", "RecordingDate", "LocalTimeStamp",
 ```{r}
 load(here("archival_KBH_anonimyzed/anonymized_eye_data/eye_data_learn.Rda"))
 
-eye_data_learn <- eye_data_learn %>%
+eye_data_learn <- eye_data_learn %>% 
   select(all_of(keepcols))
 ```
 ### Read and select columns from second dataset codename "Cogmisp"
@@ -137,7 +137,7 @@ eye_data_mix_studies <- mix1 %>%
   bind_rows(mix6) %>%
   bind_rows(mix7) %>%
   filter(str_detect(RecordingName, "Mix_14")| str_detect(RecordingName, "Mix_20")) %>%
-  select(all_of(keepcols))
+  select(all_of(keepcols)) 
 
 #Data check revealed several problems. Problems and solutions detailed below:
 
@@ -317,7 +317,10 @@ arch_final <- arch_final %>%
 
 
 arch_final<- arch_final %>%
-  filter(trial_type %in% c("normal", "filler", "same")) 
+  filter(trial_type %in% c("normal", "filler", "same")) %>%
+  filter(!is.na(media_name)) %>% 
+  filter(is.na(key_press_event)) %>% 
+  filter(is.na(studio_event))
 #7 participants excluded and 1531 trials
 
 save(arch_final, file = here("archival_KBH_anonimyzed/arch_final.Rda"))

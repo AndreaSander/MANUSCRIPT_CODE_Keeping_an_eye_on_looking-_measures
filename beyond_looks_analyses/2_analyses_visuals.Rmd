@@ -321,14 +321,6 @@ prop_looking_diff <- kbh_w_items %>%
 ### Total number of fixations to the target during the window of analyses.
 #### Question: What is considered a fixation? --> In TOBII we kept only valid fixations (as in Mills-Smith, 2016), they also excluded by subject and by trial (which we will do).
 
-
-#constum function to count how many consecutive blocks of looking to target there are each trial.
-count_consecutive_blocks <- function(x) {
-  r <- rle(x)
-  sum(r$values & r$lengths >= 12) #this would be 200ms 
-} 
-
-
 #we defined fixations as the number of consecutive runs within a trial where looks were in the target for at least 200ms while getting rid of short bouts of trackloss (17 to 38 ms)
 
 # Group by subject and summarize consecutive TRUE values in target column - we are counting how many consecutive groups of 12 rows of TRUE target looks there are per trial, which is around 200 ms of looking. We are counting each group of 200 ms of looking as one fixation.
@@ -343,10 +335,13 @@ fixations_total <- kbh_w_items   %>%
   ungroup() %>%
   filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows > 2)) %>%
   group_by(recording_name, trial_number) %>% 
+  mutate(targets_in_a_row = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, targets_in_a_row) %>%
   mutate(row = row_number(), 
          multi_of_twelve = case_when(row %% 12 == 0 & target == TRUE ~ "fixation")) %>% 
   group_by(recording_name, subject_id, trial_number, media_name) %>%
-  summarise(consecutive_target = sum(multi_of_twelve == "fixation", na.rm = T))
+  summarise(consecutive_target = sum(multi_of_twelve == "fixation", na.rm = T)) %>%
+  ungroup()
 
   
 #4. Correct first shift to target
@@ -393,17 +388,31 @@ RT <- kbh_w_items %>%
   mutate(latency_to_switch = noun_onset - 360) 
 
 
-#6. Total number of switches between AOIs
+#6. Total number of switches between AOIs - come back to this after discussion about whether to keep the part that specifies there must be 12 rows of same looks to be counted as a fixation before determining switches
 
-number_of_switches<- kbh_data_clean  %>%
+number_of_switches <- kbh_w_items %>%
+  ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-  mutate(AOI_switches = ifelse(target == TRUE & lag(target) == FALSE | target == FALSE & lag(target) == TRUE, 1, 0))%>%
-  filter(AOI_switches == 1) %>%
+  group_by(recording_name, trial_number) %>% 
+  mutate(targets_in_a_row = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, targets_in_a_row) %>%
+  mutate(row = row_number(), 
+         multi_of_twelve = case_when(row %% 12 == 0 ~ "fixation")) %>% 
+  filter(multi_of_twelve == "fixation") %>%
+  mutate(where_looking = case_when(target == TRUE ~ "target",
+                                   distractor == TRUE ~ "distractor",
+                                   TRUE ~ "neither")) %>%
+  filter(where_looking != "neither") %>%
+  group_by(recording_name, trial_number) %>%
+  mutate(AOI_switches = case_when(lag(where_looking) == "target" & where_looking == "distractor" ~ 1,
+                            lag(where_looking) == "distractor" & where_looking == "target" ~ 1)) %>%
   group_by(recording_name, subject_id, trial_number, media_name) %>%
-  summarise(total_aoi_switches = sum(AOI_switches))
-
-#7. Mean latency of refixation during trial
-#Mean latency of correct saccadic shifts from the center to the peripheral target (refixations)  during the trial. 
+  summarise(total_aoi_switches = sum(AOI_switches, na.rm = T)) %>%
+  ungroup()
+  
+  
+#7. Mean latency of refixation during trial - COME BACK TO THIS
+#Mean latency of correct saccadic shifts from the center to the peripheral target (refixations) during the trial. 
 #I would need to calculate the center point (shouldn't be too hard)
 
 kbh_data_center <- arch_final%>%
@@ -419,61 +428,76 @@ kbh_data_center <- arch_final%>%
   rename(target_side=target, distractor_side=distractor,
          gaze_point_x= gaze_point_x_adc_spx, 
          gaze_point_y = gaze_point_y_adc_spx)%>%
-  filter(gaze_point_x>=0 & gaze_point_x<= 1920)%>% #keeps only observations that are in the screen
-  filter(gaze_point_y>=0 & gaze_point_y<=1200)%>%
-  filter(!is.na(gaze_point_x))%>% #gets rid of the observations where tobii didn't get any reading
-  filter(!is.na(gaze_point_y))%>%
-  filter(!is.na(validity_left)) %>%
-  filter(!is.na(validity_right)) %>%
-  filter(validity_left<= 1)%>%
-  filter(validity_right <= 1)%>%
+  mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
+                               gaze_point_x> 1920 ~ TRUE,
+                               gaze_point_y<0 ~ TRUE,
+                               gaze_point_y > 1200 ~ TRUE,
+                               is.na(gaze_point_x) ~ TRUE,
+                               is.na(gaze_point_y) ~ TRUE,
+                               is.na(validity_left) ~ TRUE,
+                               is.na(validity_right) ~ TRUE,
+                               validity_left > 1 ~ TRUE,
+                               validity_right > 1 ~ TRUE,
+                               TRUE~ FALSE)) %>% #MAKE VISUALIZATIONS ABOUT TRACKLOSS FOR SANITY CHECK
   mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
                             TRUE~FALSE)) %>%
+  mutate(distractor = case_when(gaze_point_x >= distractor_x_min&gaze_point_x <= distractor_x_max&gaze_point_y >= distractor_y_min&gaze_point_y <= distractor_y_max~TRUE, 
+                                 TRUE ~ FALSE)) %>%
   mutate(looks_to_center = case_when(gaze_point_x >= 950 & gaze_point_x <= 970 &gaze_point_y >= 0&gaze_point_y <= 1080 ~ TRUE,
                                      TRUE~ FALSE)) %>% #creating a looks to center column
-mutate(looks = case_when(target == TRUE & looks_to_center == FALSE~ "target",
+mutate(where_looking = case_when(target == TRUE & looks_to_center == FALSE~ "target",
                          target == TRUE & looks_to_center == TRUE~ "center",
-                         target == FALSE & looks_to_center == TRUE~ "center",
-                         target == FALSE & looks_to_center == FALSE~ "distractor"))
+                         distractor == TRUE & looks_to_center == TRUE~ "center",
+                         distractor == TRUE & looks_to_center == FALSE~ "distractor",
+                         target == FALSE & distractor == FALSE & looks_to_center == TRUE ~ "center",
+                         TRUE ~ "neither"))
 
 
 mean_latency_refixation <- kbh_data_center %>%
-    filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-  select(looks, media_name, studio_project_name, studio_test_name, trial_number, recording_name, recording_timestamp) %>%
-  filter(looks %in% c("target", "center")) %>% #filtering out disctractor looks because I am only interest in latency to look to taget
-group_by(recording_name, media_name) %>%
-  filter("target" %in% looks & "center" %in% looks) %>% #keeping only trials where there were looks to target and to center
-  arrange()%>%
- filter(!(looks == "target" & lag(looks) == "target")) %>% #getting rid of consecutive target looks because I am not interested in duration of looks to target I am interested in duration of looks to center before the switch.
- ungroup() %>%
-  mutate(consecutive_looks_center= looks == "center" & lag(looks) == "center") %>%
-    group_by(recording_name, media_name, consecutive_looks_center, looks) %>%
-  reframe(total_time = sum(recording_timestamp)) %>%
-      ungroup() 
-
-mean_latency_refixation2 <- mean_latency_refixation %>%
-group_by(recording_name, media_name) %>%
-   filter(looks == "center" & lead(looks) == "target") # not working
-
-  summarise(time_to_refixate = diff(total_time))
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  group_by(recording_name, trial_number) %>%
+  select(looks, media_name, studio_project_name, studio_test_name, trial_number, recording_name, recording_timestamp, where_looking) %>%
+  mutate(looking_area_id = data.table::rleid(where_looking)) %>%
+  group_by(recording_name, trial_number, looking_area_id) %>%
+  mutate(how_long_looking_area = n(),
+         length_center_look = case_when(where_looking == "center" ~ how_long_looking_area))
+  
+  
+#   
+#   filter(looks %in% c("target", "center")) %>% #filtering out disctractor looks because I am only interest in latency to look to taget
+# group_by(recording_name, media_name) %>%
+#   filter("target" %in% looks & "center" %in% looks) %>% #keeping only trials where there were looks to target and to center
+#   arrange()%>%
+#  filter(!(looks == "target" & lag(looks) == "target")) %>% #getting rid of consecutive target looks because I am not interested in duration of looks to target I am interested in duration of looks to center before the switch.
+#  ungroup() %>%
+#   mutate(consecutive_looks_center= looks == "center" & lag(looks) == "center") %>%
+#     group_by(recording_name, media_name, consecutive_looks_center, looks) %>%
+#   reframe(total_time = sum(recording_timestamp)) %>%
+#       ungroup() 
+# 
+# mean_latency_refixation2 <- mean_latency_refixation %>%
+# group_by(recording_name, media_name) %>%
+#    filter(looks == "center" & lead(looks) == "target") # not working
+# 
+#   summarise(time_to_refixate = diff(total_time))
  
 
 #8. Mean fixation duration during trial
 #Mean duration of fixations during the window of analysis within a trial. Mean by subject by trial?
 
-mean_fixation_dur<- mean_fixation_dur <- kbh_data_clean %>%
+mean_fixation_dur <- kbh_w_items %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-ungroup()%>%
-    group_by(recording_name, subject_id, trial_number, media_name) %>%
-  
-  #getting only the time stamps for the moments when the looks where to the target
-  mutate(looks_target_time_stamp = case_when(target==TRUE ~ noun_onset)) %>%
-  
-  #Calculating each individual row amount of milliseconds looking to target by subtracting a cell minus the cell above. that way if first look then 0 ms, if second look =  376 (second look) - 360 (first look) = 17ms of looking
-  mutate(duration_of_look= looks_target_time_stamp - lag(looks_target_time_stamp, default = first(looks_target_time_stamp))) %>%
-  
-  #adding all the calculated duration for each row of each trial into a single total duration by trial
-  summarise(target_fixation_duration = sum(duration_of_look, na.rm=T))
+  ungroup()%>%
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  mutate(where_looking_group_id = data.table::rleid(target)) %>%
+  filter(target == TRUE) %>%
+  group_by(recording_name, trial_number, media_name, where_looking_group_id) %>%
+  summarise(length_of_looks = n()) %>%
+  mutate(length_of_looks = length_of_looks*(1000/60)) %>%
+  group_by(recording_name, trial_number, media_name) %>%
+  summarise(duration_of_look = mean(length_of_looks, na.rm = T)) %>%
+  ungroup()
+
 
 #When you have time make some of the calculations by hand to make sure the duration is correct.
 #I guess here is by subject the mean duration. But check on the paper.
@@ -483,6 +507,40 @@ ungroup()%>%
 #The target divergence time measure is defined as the time at which fixations to the “target” object diverges from fixations to the “distractor”. point-by-point t-tests at each 10 ms bin between mean looking proportions to the target object and mean looking proportions to the distractor object were calculated. the time point reported is the earliest time point that a minimum of five consecutive two tailed t-tests with an alpha level of p < .05 indicate a significant difference between the fixation to the target compared to distractor
 
 #What we need to do in our research: By participant, collapsing across trials average prop looking to target and average proportion looking to distractor eavery 17ms (or whatever or bin size is). So at that stage the participant has 2 columns with 8 rows (1 row per trial), one column for the average prop looks to target, one for the average prop looks to distractor. THEN we do a t test between column A and B, so we get column C that again has 8 rows (this is a rowwise t test, bonferroni corrected I guess). Then we summarize to get a single number per participant. that number is the ms slice at which 5 (?) t-tests are p>0.05.
+
+
+#Get average looking to target and looking to distractor for each 220-ms time bin (the reference paper used 10-ms time bins, but their eyetracker sampled every 2ms and ours only did ever 16-17 ms)
+
+
+eyetracking_r_data <- kbh_w_items %>%
+  filter(noun_onset>= -2000 & noun_onset <= 3000)%>%
+  mutate(timestamp_zero_interest_period = noun_onset - 360,
+         trial_unique = paste0(recording_name, "_", trial_number, "_", media_name)) %>%
+  ungroup()%>%
+  make_eyetrackingr_data(participant_column = "recording_name",
+                       trial_column = "trial_unique",
+                       time_column = "timestamp_zero_interest_period",
+                       trackloss_column = "trackloss",
+                       aoi_columns = c('target','distractor'),
+                       treat_non_aoi_looks_as_missing = FALSE
+                ) %>%
+  mutate(where_looking = as.factor(case_when(target == TRUE ~ "target",
+                                             distractor == TRUE ~ "distractor",
+                                             TRUE ~ "neither")))
+
+prop_fixation_duration <- eyetracking_r_data  %>%
+  rename(aa_target = target,
+         bb_distractor = distractor) %>%
+  make_time_sequence_data(time_bin_size = 200, 
+                          #predictor_columns = "where_looking",
+                          aois = c("aa_target", "bb_distractor"),
+                          summarize_by = "recording_name" )
+#check plot
+prop_fixation_duration %>%
+  ggplot(aes(x = TimeBin, y = Prop, color = AOI)) +
+  geom_smooth() 
+
+what_happens <- analyze_time_bins(data = prop_fixation_duration, predictor_column = "AOI", test = "t.test", p_adjust_method = "bonferroni", alpha = .05)
 
 
 
