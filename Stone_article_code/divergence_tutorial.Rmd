@@ -1,0 +1,1706 @@
+---
+title: "Divergence point analyses of visual world data: applications to bilingual research"
+author: "Kate Stone, Sol Lago and Daniel Schad"
+date: "August 2020"
+output:
+  pdf_document: default
+  html_document:
+  number_sections: yes
+subtitle: "Code to recreate the analyses reported in the manuscript"
+fontsize: 12pt
+---
+
+This R Markdown provides the code to run all analyses reported in the 
+above-named manuscript. It relies on the packages `tidyverse`, `lme4`, `boot`, 
+`Hmisc`, `polycor` and `mgcv`, which need to be installed.
+
+Note that running this script should produce results that are similar to those 
+reported in the manuscript, but may not be identical. This is because
+bootstrapping involves random resampling. Additionally, results may vary depending
+on users' R version and operating system.
+
+The code in this script was run in R Version 3.5.1 on Windows 10 with an i5 
+processor and 8 GB RAM. A list of package versions is provided 
+at the end of the document.
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, 
+                      message = FALSE, cache = TRUE)
+
+# Load packages
+library(tidyverse)
+library(lme4)
+library(boot)
+library(polycor)
+library(mgcv)
+
+```
+
+# 1. Load the data
+
+As described in Section 2 of the text, our L1-L2 dataset belongs to an 
+experiment examining the use of syntactic gender information to make noun 
+predictions. During the experiment, 74 L1 German speakers and two groups of 
+intermediate-to-advanced L2 German speakers (48 Spanish and 48 English native 
+speakers) saw four objects on a computer display and heard a German instruction 
+to click on one of the objects as quickly as possible, e.g., "Click on the 
+blue.MASC button.MASC". Only one of the objects on the display was both blue and
+masculine (henceforth, the "target object"). The properties  of the other 
+objects were manipulated such that they matched the target only in color 
+(“color competitor”), only in gender (“gender competitor”), or neither 
+(“distractor”). Critically, the instruction allowed participants to identify 
+the target object before the noun, at the gender-marked adjective. 
+
+Data from the experiment is loaded below as a dataframe and it contains these 
+variables:
+
+- L1           : Participants' native language
+- Participant  : Participant ID 
+- Item         : Experimental item ID
+- Time         : Time from the onset of the adjective in the auditory instruction 
+- Region       : Areas of interest corresponding to the objects on the screen
+- Value        : Presence (1) or absence (0) of a fixation in the associated region
+- Interest_Area: Fixation on one of the four objects (1) vs. elsewhere (0)
+- Blink        : Whether the sample contains a blink (1) or not (0)
+- Saccade      : Whether the sample contains a saccade (1) or not (0)
+- Accuracy     : Whether the target object was correctly identified (1) or not (0)
+
+Note that "Time" has been timelocked to the critical window beginning at the 
+onset of the adjective. Thus, the timestamp at trial onset is -1700 ms and the 
+timestamp at adjective onset is 0 ms.
+
+
+```{r Load_data}
+
+# Load the data
+dat_raw <- read.table("data.txt", stringsAsFactors = TRUE, header = TRUE)
+
+# Pre-processing:
+# Keep only rows with fixations to one of the four objects
+# and exclude blinks, saccades, and trials in which the target 
+# object was inaccurately identified
+dat_raw <- filter(dat_raw, Interest_Area == 1 & 
+                    Blink == 0 & 
+                    Saccade == 0 & 
+                    Accuracy == 1) %>%
+  # exclude those columns to keep it neat
+  select(-c(Interest_Area, Blink, Saccade, Accuracy))
+
+```
+
+
+## 1.1 Plot fixation curves from trial onset (Figure 1)
+
+This is the code for Figure 1 of the manuscript. Here you can see the averaged
+fixations to each of the four objects from the trial onset to shortly after the 
+noun was pronounced in the auditory instruction.
+
+Note that the plot code below does not include the images of the target and 
+competitor objects as these were added separately.
+
+
+```{r Figure1, fig.height = 11, fig.width = 10, fig.align = "center"}
+
+# Compute mean fixation proportions for each participant, item,  
+# time, region, and language group
+dat_fig1 <- dat_raw %>%
+  filter(between(Time, -1700, 1100)) %>%
+  group_by(Participant, Item, Time, Region, L1) %>%
+  summarise(MeanFixation = mean(Value))
+
+# set up aesthetic parameters for plotting
+onsets             <- c(-800, 0, 900)
+condlabels         <- c("target", "color competitor", 
+                        "gender competitor", "distractor")
+col_experimental   <- c("#08519C","#08519C", "gray70", "gray70")
+lines_experimental <- c("solid", "dotdash", "solid", "twodash")
+facet_names        <- c(`German`="L1 German", `Spanish`="L1 Spanish", 
+                        `English`="L1 English")
+AOI                <- c("target_ia", "ccolor_ia","cgender_ia", "distractor_ia")
+dat_fig1$L1        <- factor(dat_fig1$L1, 
+                             levels = c("German", "Spanish", "English"))
+dat_fig1$Region    <- factor(dat_fig1$Region, 
+                             levels = c("target_ia", "ccolor_ia", 
+                                        "cgender_ia", "distractor_ia"))
+
+# create plot
+ggplot(dat_fig1, aes(x=Time, y=MeanFixation, colour=Region)) +
+  geom_vline(xintercept=onsets, linetype="dashed", colour="gray28") +
+  stat_summary(fun.data=mean_cl_boot, aes(fill=Region),
+               geom="ribbon", alpha=.2, linetype="blank") +
+  stat_summary(fun=mean, geom="path", 
+               aes(group=Region, linetype=Region), size=.7) +
+  facet_grid(L1 ~ ., labeller = as_labeller(facet_names)) +
+  labs(x="Time since spoken instruction [ms]", y="Fixations to objects") +
+  annotate("text", x=onsets[1]-70, y=.65, label="italic(determiner)", 
+           parse=TRUE, angle=90, colour="gray28", size=6) +
+  annotate("text", x=onsets[2]-70, y=.7, label="italic(adjective)", 
+           parse=TRUE, angle=90, colour="gray28", size=6) +
+  annotate("text", x=onsets[3]-70, y=.85, label="italic(noun)", 
+           parse=TRUE, angle=90, colour="gray28", size=6) +
+  scale_x_continuous(breaks=c(-1700, -800, 0, 900)) +
+  scale_y_continuous(labels=scales::percent_format(accuracy=1)) +
+  scale_colour_manual(values=col_experimental, name="", 
+                      breaks=AOI, labels=condlabels) +
+  scale_fill_manual(values=col_experimental, name="", 
+                    breaks=AOI, labels=condlabels) +
+  scale_linetype_manual(values=lines_experimental, name="", 
+                        breaks=AOI, labels=condlabels) +
+  theme_light() + 
+  theme(panel.spacing=unit(1.2, "lines")) +
+  theme(text=element_text(size=20, colour="gray28"), legend.position="top")
+
+```
+
+
+## 1.2 Create a base plot with fixation curves to use throughout the script
+
+This plot forms the basis of Figure 4, to which we will later add divergence
+point estimates. Only the fixation curves for the two regions of interest
+are plotted: the target and (color) competitor (henceforth, "competitor").
+
+```{r Base_plot, fig.align = "center", fig.height = 10, fig.width = 9}
+
+# Create dependent variables
+dat_plot <- dat_raw %>% 
+  # extract the critical window
+  subset(between(Time, 0, 1100)) %>%
+  # create mean and sum of fixations by participant, item,
+  # timepoint, region and L1
+  group_by(Participant, Item, Time, Region, L1) %>% 
+  summarise(MeanFixation = mean(Value),
+            SumFixation = sum(Value),
+            NFixation = length(Value)) %>%
+  # extract the two regions of interest
+  subset(Region %in% c("target_ia", "ccolor_ia")) %>%
+  # discard unwanted factor levels
+  droplevels()
+
+# Reorder factor levels, add nicer labels
+dat_plot$L1 <- factor(dat_plot$L1, 
+                      levels = c("German", "Spanish", "English"))
+labels <- c(German = "L1 German", 
+            Spanish = "L1 Spanish", 
+            English = "L1 English")
+
+# Create plot "p" with Time on the x-axis and mean fixations on the y-axis
+(p <- ggplot(dat_plot, aes(x = Time, y = MeanFixation)) +
+  # plot the mean fixation proportions by region as a line
+  stat_summary(fun = mean, geom = "path", 
+               aes(group = Region, colour = Region, linetype = Region), 
+               size = .7) +
+  # add a confidence interval
+  stat_summary(fun.data=mean_cl_boot, aes(fill = Region), 
+               geom = "ribbon", alpha = .2) +
+  # create a separate panel for each L1 group 
+  facet_grid(L1~., scales = "free_x",
+  labeller = labeller(L1 = labels, Condition = labels)) +
+  # from here on only aesthetics are set
+  theme_light() +
+  theme(text=element_text(size=20, colour="gray28"),
+        legend.position = "top",
+        legend.title = element_blank(),
+        panel.spacing = unit(1.2, "lines")) +
+  scale_colour_manual(values = c("#08519C", "#08519C"),
+                      breaks = c("target_ia", "ccolor_ia"),
+                      labels = c("target_ia", "color competitor")) +
+  scale_fill_manual(values = c("#08519C", "#08519C"),
+                    breaks = c("target_ia", "ccolor_ia"),
+                    labels = c("target_ia", "color competitor")) +
+  guides(colour = guide_legend(keywidth = 1, keyheight = 1, default.unit = "cm"),
+         fill = guide_legend(keywidth = 1, keyheight = 1, default.unit = "cm"),
+         linetype = guide_legend(keywidth = 1, keyheight = 1, default.unit = "cm")) +
+  scale_linetype_manual(values=c("solid","dotdash"), 
+                        breaks = c("target_ia", "ccolor_ia"),
+                        labels = c("target_ia", "color competitor")) +
+  scale_y_continuous(breaks = seq(0, 1, by = .25),
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_x_continuous(breaks = seq(0, 1200, 200)) +
+  labs(x = "Time since adjective onset (ms)",
+       y = "Fixations to objects") +
+  geom_vline(xintercept = 900, linetype = "dashed", 
+             size = 1, colour = "darkgrey") +
+  annotate("text", label = "noun", y = .8, x = 875, angle = 90, 
+           fontface = "italic", size = 6, colour = "darkgrey")) 
+
+```
+
+
+# 2. Divergence point estimation using uncorrected and corrected multiple comparisons (Bonferroni, FDR)
+
+In this section, we compare divergence points estimated via the method described 
+in Section 3 of the manuscript: A statistical test is applied at each timepoint 
+and the earliest timepoint with a significant z-score is taken as the divergence 
+point. 
+
+The uncorrected estimates are compared with two types of correction for  
+multiple comparisons: Bonferroni and FDR control.
+
+
+```{r Multiple_comparisons}
+
+# Extract the critical window
+dat_stat <- dat_raw %>%
+  # while the critical window for our data extends from the adjective 
+  # onset (0 ms) until the noun onset (900 ms), we need to add a buffer 
+  # after then noun so that we can detect a divergence point even if 
+  # participants did not actually predict the noun before hearing it. 
+  # We've thus added a 300 ms buffer after the noun onset:
+  filter(between(Time, 0, 1200))
+
+# Apply statistical test at each timepoint
+p_table <- dat_stat %>%
+  # select only rows in the dataframe where a fixation occurred
+  filter(Value == 1) %>%
+  # select only the two regions of interest
+  filter(Region %in% c("target_ia", "ccolor_ia")) %>%
+  # label fixations that were on the target as 1 and as 0 otherwise,
+  mutate(pTarget = ifelse(Region == "target_ia", 1, 0)) %>%
+  # we want to test for each L1 at each timepoint
+  group_by(L1, Time) %>%
+  # apply logistic regression and extract z-values
+  summarise(z = summary(lme4::glmer(pTarget ~ 1 + 
+            (1|Participant) + (1|Item), family="binomial", 
+            control=lme4::glmerControl(calc.derivs=FALSE)))$coefficients[1,3]) %>%
+  # add p-values
+  mutate(p = pnorm(-abs(z))*2)
+
+# Set alpha level and calculate Bonferroni correction
+alpha           <- 0.05
+N_tests         <- length(unique(dat_stat$Time))
+alpha_corrected <- alpha/N_tests
+
+# Find the earliest timepoint with a significant uncorrected p-value
+(uncorr <- p_table %>%
+  # extract positive z-scores ("target advantage") and significant p-values
+  filter(z > 0, p < alpha) %>% 
+  # group results by L1 group
+  group_by(L1) %>%
+  # extract the earliest significant p-value and its timepoint 
+  slice(1))
+
+# Find the earliest timepoint that survives the Bonferroni correction
+(bnf <- p_table %>%
+  filter(z > 0, p < alpha_corrected) %>% 
+  group_by(L1) %>%
+  slice(1))
+
+# Find the earliest timepoint after FDR control
+(fdr <- p_table %>%
+  # apply FDR control from `stats` package
+  mutate(p_fdr = stats::p.adjust(p, method = "BY", n = length(p))) %>%
+  filter(z > 0, p_fdr < alpha) %>%
+  group_by(L1) %>%
+  slice(1))
+
+```
+
+## 2.1 Plot the uncorrected and corrected estimates onto the fixation curves (Figure 2).
+
+```{r Plot_multiple_comparisons, fig.align = "center", fig.height = 10, fig.width = 9}
+
+# Add the estimates to the base plot prepared in section 1.2
+(p + 
+   # uncorrected onset
+    geom_point(data = subset(dat_plot, L1 == "German"),
+            aes(y = .25, x = uncorr$Time[uncorr$L1=="German"]), 
+            size = 6, shape = 17) +
+    geom_point(data = subset(dat_plot, L1 == "Spanish"),
+            aes(y = .48, x = uncorr$Time[uncorr$L1=="Spanish"]), 
+            size = 6, shape = 17) +    
+    geom_point(data = subset(dat_plot, L1 == "English"),
+            aes(y = .48, x = uncorr$Time[uncorr$L1 == "English"]), 
+            size = 6, shape = 17) +
+    
+   # Bonferroni-corrected onset
+    geom_point(data = subset(dat_plot, L1 == "German"),
+            aes(y = .48, x = bnf$Time[bnf$L1 == "German"]), 
+            size = 5, shape = 15) +  
+    geom_point(data = subset(dat_plot, L1 == "Spanish"),
+            aes(y = .51, x = bnf$Time[bnf$L1 == "Spanish"]), 
+            size = 5, shape = 15) +
+    geom_point(data = subset(dat_plot, L1 == "English"),
+            aes(y = .48, x = bnf$Time[bnf$L1 == "English"]), 
+            size = 5, shape = 15) +
+    
+   # FDR-corrected onset
+    geom_point(data = subset(dat_plot, L1 == "German"),
+            aes(y = .48, 
+                x = fdr$Time[fdr$L1 == "German"]), 
+            size = 4, stroke = 2, shape = 21) +  
+    geom_point(data = subset(dat_plot, L1 == "Spanish"),
+            aes(y = .45, 
+                x = fdr$Time[fdr$L1 == "Spanish"]), 
+            size = 4, stroke = 2, shape = 21) +  
+    geom_point(data = subset(dat_plot, L1 == "English"),
+            aes(y = .48, 
+                x = fdr$Time[fdr$L1 == "English"]), 
+            size = 4, stroke = 2, shape = 21) -> fig_2 )
+
+```
+
+
+# 3. Plot autocorrelation (Figure 3)
+
+Here we create the plot from Section 3 of the text demonstrating the 
+autocorrelation in our data. Because the data follow a binomial distribution 
+(fixations are either on the target or on the competitor), we need to compute 
+"tetrachoric" correlations instead of the more typical Pearson correlations 
+(e.g. in the `stats::acf()` function). We have created a function to do this. 
+You will need the `polycor` R package installed and to have our R script 
+`autocor_function.R` saved in the same directory as the current script. 
+The steps are provided below.
+
+
+```{r Autocorrelation, results = "hide", fig.align = "center", fig.height = 8, fig.width = 13}
+
+# First we set up the data without binning observations
+p_nobins <- dat_raw %>%
+  # extract the critical window
+  filter(between(Time, 0, 900)) %>%
+  # extract only the regions that were fixated
+  filter(Value == 1) %>%
+  # code looks to the target as 1, looks to the competitor as 0, and the 
+  # remaining two regions as NA. We need to keep the NAs, because 
+  # removing these rows would make the remaining rows look contiguous 
+  # over time when in fact  multiple time points may have been removed 
+  # (note that when autocorrelation is computed below, the NAs may result  
+  # in warnings about the number of columns or rows; these can be ignored).
+  mutate(pTarget = ifelse(Region == "target_ia", 1, 
+                          ifelse(Region == "ccolor_ia", 0, NA)))
+
+# We can bin the above dataset into different size bins
+
+# 50 ms timebins
+Binsize <- 50
+p_bin50 <- p_nobins %>% 
+  # create the timebins
+  mutate(Timebin = floor((Time + Binsize)/Binsize)) %>%
+  # each timebin should have only 1 datapoint. We don't want 
+  # a situation where one timebin contains datapoints for looks to more 
+  # than one region, because these would be treated as separate datapoints. 
+  # So for each timebin, we need to decide whether looks were mostly to 
+  # the target (coded as 1 if more than 50% of fixations), or mostly to 
+  # something else (coded as 0).
+  group_by(L1, Participant, Item, Timebin) %>%
+  summarise(pTarget = ifelse(mean(pTarget, na.rm = TRUE) > 0.5, 1, 0)) %>%
+  rename(Time = Timebin) %>%
+  droplevels()
+
+# 100 ms timebins
+Binsize <- 100
+p_bin100 <- p_nobins %>% 
+  mutate(Timebin = floor((Time + Binsize)/Binsize)) %>%
+  group_by(L1, Participant, Item, Timebin) %>%
+  summarise(pTarget = ifelse(mean(pTarget, na.rm = TRUE) > 0.5, 1, 0)) %>%
+  rename(Time = Timebin) %>%
+  droplevels()
+
+# 150 ms timebins
+Binsize <- 150
+p_bin150 <- p_nobins %>% 
+  mutate(Timebin = floor((Time + Binsize)/Binsize)) %>%
+  group_by(L1, Participant, Item, Timebin) %>%
+  summarise(pTarget = ifelse(mean(pTarget, na.rm = TRUE) > 0.5, 1, 0)) %>%
+  rename(Time = Timebin) %>%
+  droplevels()
+
+# Then, we decide how many lags we want given our 900 ms critical window 
+# and the  bin size, e.g. if the bin size is 100, then in our 900 ms window 
+# we can compare correlations between the first bin and up to 8 other bins. 
+# We create a dataframe of correlations at each lag using our
+# autocorrelation function:
+
+# Load R script "autocor_function.R"
+source("autocor_function.R")
+
+# The function needs the name of the dataset, a vector of individual 
+# participant  IDs, the name of the column in the dataframe with 
+# experimental item IDs, the  name of the column in the dataframe with
+# timestamps, and the number of lags we want to compute autocorrelation for. 
+# The function will iterate over the total number of participants:
+
+# autocorrelation with no binning 
+Nlags = 19 
+d_plot_nobins <- autocor.binom(p_nobins, 
+                               unique(p_nobins$Participant), 
+                               "Item",
+                               "Time",
+                               Nlags)
+
+# autocorrelation with 50 ms bins
+Nlags = 8 
+d_plot_50 <- autocor.binom(p_bin50, 
+                           unique(p_bin50$Participant), 
+                           "Item",
+                           "Time",
+                           Nlags)
+
+# autocorrelation with 100 ms bins
+Nlags = 4 
+d_plot_100 <- autocor.binom(p_bin100, 
+                            unique(p_bin100$Participant), 
+                            "Item",
+                            "Time",
+                            Nlags)
+
+# autocorrelation with 150 ms bins
+Nlags = 3 
+d_plot_150 <- autocor.binom(p_bin150, 
+                            unique(p_bin150$Participant), 
+                            "Item",
+                            "Time",
+                            Nlags)
+
+# Add labels
+d_plot_nobins$binlabel <- "unbinned"
+d_plot_50$binlabel     <- "50 ms bins"
+d_plot_100$binlabel    <- "100 ms bins"
+d_plot_150$binlabel    <- "150 ms bins"
+
+# Bind the datasets together
+df <- rbind(d_plot_nobins, d_plot_50, d_plot_100, d_plot_150)
+
+# Set the order of factor levels
+df$binlabel <- factor(df$binlabel, 
+                      levels = c("unbinned", "50 ms bins", 
+                                 "100 ms bins", "150 ms bins"))
+
+# Plot
+(fig_3 <- ggplot(df, aes(x = lag, y = cor, ymin = cor - se, ymax = cor + se, 
+               group = binlabel, colour = binlabel, 
+               shape = binlabel, fill = binlabel)) +
+  geom_hline(yintercept = 0, colour = "darkgrey", size = 1) +
+  geom_vline(xintercept = 0, colour = "darkgrey", size = 1) +
+  geom_point(size = 5) + 
+  geom_line(size = 1) +
+  geom_errorbar(size = 1, width = .3) + 
+  ylim(-.05, 1) +
+  scale_color_manual(breaks =  c("unbinned", "50 ms bins", 
+                                 "100 ms bins", "150 ms bins"), 
+                     values = c("black", "#d95f02", "#1b9e77", "#7570b3")) +
+  scale_fill_manual(breaks =  c("unbinned", "50 ms bins", 
+                                 "100 ms bins", "150 ms bins"), 
+                     values = c("black", "#d95f02", "#1b9e77", "#7570b3")) +  
+  scale_shape_manual(breaks =  c("unbinned", "50 ms bins", 
+                                 "100 ms bins", "150 ms bins"), 
+                     values = c(16, 17, 15, 23)) +
+  scale_x_continuous(limits = c(0, 15.5), breaks = c(0:15), labels = c(0:15)) +
+  labs(x = "Lag from first timebin", 
+       y = "Tetrachoric correlation", colour = "", shape = "", fill = "") +
+  theme_light() +
+  theme(text = element_text(size = 30, colour="gray28"),
+        legend.position = "top") +
+  guides(colour = guide_legend(keywidth = 1, keyheight = 1, 
+                               default.unit = "cm", title.position = "top", 
+                               title.hjust = .5),
+         size = guide_legend(order = 3)))
+
+```
+
+
+# 4. Divergence point estimation via bootstrapping
+
+This section contains the code for the bootstrapping approach described in  
+Section 4.2 of the text. There are three steps: preparing the data, defining 
+the bootstrap function, and running the bootstrap.
+
+### *Preparing the data*
+
+First, we prepare two datasets: the first dataset for the comparison of 
+native vs. non-native speakers (L1 vs. L2); the second dataset for the
+comparison of L1 Spanish vs. English speakers.
+
+
+```{r Bootstrapping_preparation, eval = TRUE}
+
+# First step: preparing the data
+
+# Prepare data for the native vs. non-native comparison
+dat_boot_L1L2 <- dat_raw %>%
+  # add a new variable to group the English and Spanish speakers
+  mutate(Nativeness = ifelse(L1 == "German", "Native", "NonNative")) %>%
+  # select the target time window: the window should be long enough to  
+  # capture the divergence point given our criteria, e.g. a divergence 
+  # sustained for at least 200 ms. So we want a window beginning at 
+  # least 200 ms prior to a plausible divergence point. We also want to 
+  # be able to detect divergence points even if they occur after the noun, 
+  # as these are informative about whether or not the noun was predicted.
+  # However, once the noun is heard, fixation data become sparse because 
+  # participants click on the target object and move onto the next screen. 
+  # With insufficient data, the bootstrap will fail. Given these   
+  # constraints, we've chosen a window from adjective onset to noun  
+  # onset plus a  buffer of 300 ms.
+  subset(between(Time, 0, 1200)) %>%
+  # create stratification variables
+  mutate(StrataVars = paste(Participant, Region, Time, sep = "")) %>%
+  # drop unwanted factor levels
+  droplevels()
+
+# Convert variables to factors when needed for the bootstrap 
+# (if bootstrap gives strange errors, not factorizing is a likely cause)
+dat_boot_L1L2$StrataVars <- as.factor(dat_boot_L1L2$StrataVars)
+dat_boot_L1L2$Nativeness <- as.factor(dat_boot_L1L2$Nativeness)
+
+# Inspect the data
+head(dat_boot_L1L2)
+
+
+# Prepare data for the L1 Spanish vs. English comparison
+dat_boot_SpaEn <- dat_raw %>%
+  # add a new variable to group the English and Spanish groups
+  mutate(Nativeness = ifelse(L1 == "German", "Native", "NonNative")) %>%
+  # select the target time window: for the individual L1 Spanish and English 
+  # groups, it is possible that the divergence point is later, potentially even 
+  # after the noun. To account for this, we've again chosen a window from 
+  # adjective onset to noun onset, but used a slightly longer buffer than for 
+  # the aggregate L2 group above: 350 ms after the noun. 
+  subset(between(Time, 0, 1250)) %>%
+  # create stratification variables
+  mutate(StrataVars = paste(Participant, Region, Time, sep = "")) %>%
+  # drop unwanted factor levels
+  droplevels()
+
+# Convert variables to factors when needed for the bootstrap 
+# (if bootstrap gives strange errors, not factorizing is a likely cause)
+dat_boot_SpaEn$StrataVars <- as.factor(dat_boot_SpaEn$StrataVars)
+dat_boot_SpaEn$Nativeness <- as.factor(dat_boot_SpaEn$Nativeness)
+
+# Inspect the data
+head(dat_boot_SpaEn)
+
+```
+
+
+### *Defining the bootstrap function: L1 vs L2 speakers*
+
+Next, we make two bootstrap functions corresponding to our two comparisons of
+interest: native vs. non-native speakers (L1-L2), and L1 Spanish vs. L1 English
+speakers (Spa-En). You could also do all comparisons in one bootstrap function, 
+but it will take longer (e.g. ~2 hrs instead of ~1 hr).
+
+Below we define the bootstrap function to compare the onset of predictive looks 
+to the target object in L1 vs. L2 German speakers.
+
+
+```{r Bootstrapping_definition_L1L2, eval = TRUE}
+
+# Second step: defining a bootstrap function for L1 vs. L2 speakers
+boot_L1L2 <- function(original_data, resample_indices){
+
+  # 1. Resample the data
+  dat_resample <- original_data[resample_indices, ]
+  
+  # 2. Update progress bar
+  prog$tick()$print()
+  
+  # 3. Prepare the resampled data for testing
+  dat <- dat_resample %>%
+    # keep only rows where either the target or competitor were fixated
+    filter(Value == 1 & Region %in% c("target_ia","ccolor_ia")) %>%
+    # create a new variable indicated whether or not the target was fixated
+    mutate(pTarget = ifelse(Region=="target_ia", 1, 0)) %>%
+    # average fixation proportions by participant and time, keeping speaker group
+    group_by(Participant, Time, Nativeness) %>%
+    summarise(MeanFixation = mean(pTarget)) 
+  
+  # 4. Apply a statistical test at each timepoint for each group
+  
+    # Test for L1 German speakers
+   test_ge <- dat %>%
+      subset(Nativeness == "Native") %>%
+      group_by(Time) %>%
+      # we used a one-sample t-test against chance (50%)
+      summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+
+   # Test for L2 German speakers (Spanish + English)
+   test_l2 <- dat %>%
+      subset(Nativeness == "NonNative") %>%
+      group_by(Time) %>%
+      summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+  
+  # 5. return a TRUE/FALSE vector of significant positive t-scores  
+  # (positive means more looks to the target than competitor)
+  t_ge <- test_ge$t > 1.96
+  t_l2 <- test_l2$t > 1.96
+
+  # 6. create empty vectors to store onsets
+  onset_ge <- onset_l2 <- c()
+
+  # 7. find the index of the earliest run of 10 sequential TRUEs 
+  for (i in 1:(length(t_l2)-10)) { 
+    onset_ge[i] <- sum(t_ge[i:(i+9)]) == 10
+    onset_l2[i] <- sum(t_l2[i:(i+9)]) == 10
+  }
+
+  # 8. find the difference between onsets
+  delta_l1l2 <- which(onset_l2)[1] - which(onset_ge)[1]
+
+  # 9. print 
+  # note: the bootstrap returns the indices of the respective timepoints, not 
+  # absolute times. The annotations to the right of each index (e.g. t[,1])
+  # indicate where in the boot object the bootstrapped onset distributions 
+  # can be found (more detail below).
+  c(
+    delta_l1l2,         # onset difference L1 vs. L2 t[,1]
+    which(onset_ge)[1], # onset bin for looks to target L1 German t[,2]
+    which(onset_l2)[1]  # onset bin for looks to target L2 German t[,3]
+    )
+}
+
+```
+
+
+### *Defining the bootstrap function: Spanish vs English speakers*
+
+Now we define a bootstrap function to compare the onset of predictive looks
+to the target object in Spanish vs. English speakers.
+
+
+```{r Bootstrapping_definition_SpaEn, eval = TRUE}
+
+# Second step: defining a bootstrap function for Spanish vs. English speakers
+boot_SpaEn <- function(original_data, resample_indices){
+  
+  # 1. Resample the data
+  dat_resample <- original_data[resample_indices, ]
+  
+  # 2. Update progress bar
+  prog$tick()$print()
+  
+  # 3. Prepare the resampled data for testing
+  dat <- dat_resample %>%
+    # keep only rows where either the target or competitor were fixated
+    filter(Value == 1 & Region %in% c("target_ia","ccolor_ia")) %>%
+    # create a new variable indicated whether or not the target was fixated
+    mutate(pTarget = ifelse(Region=="target_ia", 1, 0)) %>%
+    # average fixation proportions by participant and time, 
+    # keeping speaker group
+    group_by(Participant, Time, L1) %>%
+    summarise(MeanFixation = mean(pTarget)) 
+  
+  # 4. Apply a statistical test at each timepoint for each group
+  
+    # Test for L1 Spanish speakers
+    test_sp <- dat %>%
+      subset(L1 == "Spanish") %>%
+      group_by(Time) %>%
+      # we use a one-sample t-test against chance (50%)
+      summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+  
+    # Test for L1 English speakers
+    test_en <- dat %>%
+      subset(L1 == "English") %>%
+      group_by(Time) %>%
+      summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+
+  # 5. return a TRUE/FALSE vector of significant positive t-scores  
+  # (positive means more looks to the target than competitor)
+  t_sp <- test_sp$t > 1.96
+  t_en <- test_en$t > 1.96
+
+  # 6. create empty vectors to store onsets
+  onset_sp <- onset_en <- c()
+
+  # 7. find the index of the earliest run of 10 sequential TRUEs 
+  for (i in 1:(length(t_sp)-10)) { 
+    onset_sp[i] <- sum(t_sp[i:(i+9)]) == 10
+    onset_en[i] <- sum(t_en[i:(i+9)]) == 10
+  }
+
+  # 8. find the difference between onsets
+  delta_spen <- which(onset_sp)[1] - which(onset_en)[1]
+
+  # 9. print 
+  # note: the bootstrap returns the indices of the respective timepoints, not 
+  # absolute times. The annotations to the right of each index (e.g. t[,1])
+  # indicate where in the boot object the bootstrapped onset distributions 
+  # can be found (more detail below).
+  c(
+    delta_spen,         # onset difference Spanish vs. English t[,1]
+    which(onset_sp)[1], # onset Spanish L1s t[,2]
+    which(onset_en)[1]  # onset English L1s t[,3]
+    )
+}
+
+```
+
+### *Running the bootstrap: L1 vs L2 speakers*
+
+Third step: we run the bootstrap. This might take a while depending on your 
+computer capabilities. Once the bootstrap initializes, a progress bar will 
+give you an estimate of how long.
+
+First, we run the bootstrap for the comparison between L1 vs. L2 speakers.
+
+
+```{r Bootstrapping_run_L1L2, eval = FALSE}
+
+# Third step: running the bootstrap for L1 vs. L2 speakers
+
+# Set number of iterations; 1000-2000 is usually sufficient
+Niter <- 2000
+
+# Initialize progress bar
+prog <- dplyr::progress_estimated(Niter + 1)
+
+# Run the bootstrap using the boot() function from the package `boot`.
+# Note that some versions of dplyr::summarise() may return warnings  
+# about grouping factors
+bootres_L1L2 <- boot::boot(
+  # dataset to bootstrap
+  data = dat_boot_L1L2,         
+  # bootstrap function                         
+  statistic = boot_L1L2,        
+  # stratification variable                         
+  strata = dat_boot_L1L2$StrataVars, 
+  # number of iterations                          
+  R = Niter)                   
+                   
+# Summary statistics for the boot object can be found by calling 
+# the boot object. The column "original" shows the onsets computed 
+# from the original data (before the first resample). The column 
+# "bias" shows the difference between the original and the mean 
+# of the corresponding bootstrap distribution and "std. error" 
+# the standard error of the bootstrap distribution. Note that the 
+# returned values are the indices of timepoints, not the timepoints 
+# in milliseconds:
+bootres_L1L2
+
+# The onsets from the original data are stored here (the order of values 
+# corresponds to the order of point 9 of the bootstrap function above):
+bootres_L1L2$t0
+
+# The bootstrapped onsets computed after each resample are stored here, 
+# with  each column corresponding to the index in point 9 of the  
+# bootstrap function:
+head(bootres_L1L2$t)
+
+# Find the mean for the first column (difference in divergence points  
+# of L1 vs. L2 groups) 
+(mean_L1L2 <- mean(bootres_L1L2$t[,1], na.rm = TRUE))
+
+# Convert the mean to milliseconds. We multiply by 20 because we have 
+# timestamps every 20 ms:
+mean_L1L2*20
+
+# To convert the mean onset times to milliseconds, we first subtract 1 because 
+# the bootstrap gives the first timepoint an index of 1, but the timestamp 
+# is zero. We then also multiply by 20:
+(mean(bootres_L1L2$t[,2], na.rm = TRUE)-1) * 20 # L1 German onset
+(mean(bootres_L1L2$t[,3], na.rm = TRUE)-1) * 20 # L2 German onset
+
+# The boot object can be saved as an RDS
+saveRDS(bootres_L1L2, "./bootres_L1L2.rds")
+
+```
+
+
+### *Running the bootstrap: Spanish vs English speakers*
+
+Now we run the bootstrap for the comparison between Spanish vs. English speakers. 
+Once the bootstrap initializes, a progress bar will give an estimate of how long 
+the computation will take.
+
+
+```{r Bootstrapping_run_SpaEn, eval = FALSE}
+
+# Third step: Running the bootstrap for Spanish vs. English speakers 
+
+# Set number of iterations
+Niter <- 2000
+
+# Initialize progress bar
+prog <- dplyr::progress_estimated(Niter + 1)
+
+# Run bootstrap using the boot() function from the package `boot`.
+bootres_SpaEn <- boot::boot(
+  # dataset to bootstrap
+  data = dat_boot_SpaEn,        
+  # bootstrap function                          
+  statistic = boot_SpaEn,       
+  # stratification variable                          
+  strata = dat_boot_SpaEn$StrataVars, 
+  # number of iterations                          
+  R = Niter)                   
+
+# Summary statistics for the boot object can be found by calling 
+# the boot object. The column "original" shows the onsets computed 
+# from the original data (before the first resample). The column 
+# "bias" shows the difference between the original and the mean 
+# of the corresponding bootstrap distribution and "std. error" 
+# the standard error of the bootstrap distribution. Note that the 
+# returned values are the indices of timepoints, not the timepoints 
+# in milliseconds:
+bootres_SpaEn
+
+# The onsets from the original data are stored here (the order of values 
+# corresponds to the order of point 9 of the bootstrap function above):
+bootres_SpaEn$t0
+
+# The bootstrapped onsets computed after each resample are stored here, 
+# with  each column corresponding to the index in point 9 of the  
+# bootstrap function:
+head(bootres_SpaEn$t)
+
+# Find the mean for the first column (difference in divergence points of  
+# Spanish vs. English groups) 
+(mean_SpaEn <- mean(bootres_SpaEn$t[,1], na.rm = TRUE))
+
+# Convert the mean to milliseconds. We multiply by 20 because we have 
+# timestamps every 20 ms:
+mean_SpaEn*20
+
+# To convert the mean onset times to milliseconds, we first subtract 1 because 
+# the bootstrap gives the first timepoint an index of 1, but the timestamp 
+# is zero. We then also multiply by 20:
+(mean(bootres_SpaEn$t[,2], na.rm = TRUE)-1) * 20 # L1 Spanish onset
+(mean(bootres_SpaEn$t[,3], na.rm = TRUE)-1) * 20 # L1 English onset
+
+# The boot object can be saved as an RDS
+saveRDS(bootres_SpaEn, "./bootres_SpaEn.rds")
+
+```
+
+## 4.1 Compute a confidence interval
+
+The `boot` package has a couple of functions for computing confidence intervals 
+(CIs), the main one being `boot.ci()`. Within the `boot.ci()` function, you can 
+choose which type of interval is appropriate to your data using the `type` argument.
+See the references under ?boot.ci for how to decide which is the most appropriate.
+For normally distributed bootstrap distributions, the "percentile" is the simplest.
+
+For non-normal bootstrap distributions, there are a few options for computing 
+bias-corrected intervals: while there is a bias-corrected option in the `boot.ci()` 
+function, it is extremely computationally heavy. Alternative options for 
+calculating BCa or BCa-approximate intervals exist (e.g. the `bootBCa` package 
+or the `boot::abc.ci` function), but these are not suited to the complexity of 
+our bootstrap function above. We have therefore presented percentile intervals.
+
+```{r Bootstrap_CIs}
+
+# Load bootstraps (if saved above)
+bootres_L1L2  <- readRDS("bootres_L1L2.rds")
+bootres_SpaEn <- readRDS("bootres_SpaEn.rds")
+
+# L1 vs. L2 comparison
+# Find the 2.5th and 97.5th percentiles for column 1 
+# (difference in divergence points L1 vs. L2 groups) 
+boot::boot.ci(bootres_L1L2, index = 1, type = "perc")
+
+# CI in milliseconds:
+boot::boot.ci(bootres_L1L2, index = 1, type = "perc")$percent[4:5]*20
+
+# Spanish vs. English comparison
+# Find the 2.5th and 97.5th percentiles for column 1 
+# (difference in divergence points Spanish vs. English groups) 
+boot::boot.ci(bootres_L1L2, index = 1, type = "perc")
+
+# CI in milliseconds:
+boot::boot.ci(bootres_SpaEn, index = 1, type = "perc")$percent[4:5]*20
+
+```
+
+
+## 4.2 Plot the bootstrap distributions (Figures 4A and 5)
+
+Here we visualize the bootstrap distributions for the divergence point estimates. 
+First, we visualize the distribution of divergence points in the three speaker 
+groups (**Figure 4A** in the manuscript).
+
+```{r Plot_boot_distributions_groups, align = "center", fig.height = 5, fig.width = 16}
+
+# Extract bootstrap results into a dataframe
+df_l1l2 <- as.data.frame(bootres_L1L2$t)  %>%
+  mutate(V1 = V1*20, 
+         V2 = (V2-1)*20, 
+         V3 = (V3-1)*20) %>%
+  rename(delta_l1l2 = V1, 
+         German = V2, 
+         NonNative = V3) %>%
+  gather(key = "L1", value = "onset")
+
+df_spen <- as.data.frame(bootres_SpaEn$t)  %>%
+  mutate(V1 = V1*20, 
+         V2 = (V2-1)*20, 
+         V3 = (V3-1)*20) %>%
+  rename(delta_spen = V1, 
+         Spanish = V2, 
+         English = V3) %>%
+  gather(key = "L1", value = "onset")
+
+df <- rbind(df_l1l2, df_spen)
+
+# Create nicer labels
+labels <- c(German = "L1 German", 
+            Spanish = "L1 Spanish", 
+            English = "L1 English",
+            NonNative = "Non-native pooled", 
+            delta_l1l2 = "Difference L1-L2", 
+            delta_spen = "Difference L1 Spanish-English")
+
+# Order factor levels
+df$L1 <- factor(df$L1, levels = c("German", "Spanish", "English", 
+                                  "delta_l1l2", "delta_spen"))
+
+# Plot Figure 4A of the manuscript
+(fig_4a <- ggplot(subset(df, L1 %in% c("German", "Spanish", "English")), 
+                  aes(onset)) + 
+    geom_histogram(binwidth = 20, fill = "grey30", colour = "grey30", 
+                   alpha = .3) +
+    # create a panel for each language group
+    facet_grid(~L1, scales = "free", labeller = as_labeller(labels)) +
+    # L1 German group
+    # add a vertical line to visualize difference between original mean 
+    # and bootstrap mean (i.e. bias)
+    geom_vline(data = filter(df, L1 == "German"),
+               aes(xintercept = (mean(bootres_L1L2$t0[2], na.rm = TRUE)-1)*20), 
+               linetype = "dotted", size = 1.3) +
+    # add point and errorbar to show mean and 95% CI
+    geom_point(data = filter(df, L1 == "German"),
+               aes(x = (mean(bootres_L1L2$t[,2], na.rm = TRUE)-1)*20, y = 30), 
+               size = 6) +
+    geom_errorbarh(data = filter(df, L1 == "German"),
+                   aes(xmin = (boot::boot.ci(bootres_L1L2, index = 2, 
+                                             type = "perc")$percent[4]-1)*20,
+                       xmax = (boot::boot.ci(bootres_L1L2, index = 2, 
+                                             type = "perc")$percent[5]-1)*20,
+                       y = 30),size = 2, height = 50) +
+    # L1 Spanish group
+    geom_vline(data = filter(df, L1 == "Spanish"),
+               aes(xintercept = (mean(bootres_SpaEn$t0[2], na.rm = TRUE)-1)*20), 
+               linetype = "dotted", size = 1.3) + 
+    geom_point(data = filter(df, L1 == "Spanish"), 
+               aes(x = (mean(bootres_SpaEn$t[,2], na.rm = TRUE)-1)*20, y = 30), 
+               size = 6) +
+    geom_errorbarh(data = filter(df, L1 == "Spanish"), 
+                   aes(xmin = (boot::boot.ci(bootres_SpaEn, index = 2, 
+                                             type = "perc")$percent[4]-1)*20,
+                       xmax = (boot::boot.ci(bootres_SpaEn, index = 2, 
+                                             type = "perc")$percent[5]-1)*20, 
+                       y = 30), 
+                   size = 2, height = 50) +
+    # L1 English group
+    geom_vline(data = filter(df, L1 == "English"),
+               aes(xintercept = (mean(bootres_SpaEn$t0[3], na.rm = TRUE)-1)*20), 
+               linetype = "dotted", size = 1.3) +
+    geom_point(data = filter(df, L1 == "English"),
+               aes(x = (mean(bootres_SpaEn$t[,3], na.rm = TRUE)-1)*20, y = 30), 
+               size = 6) +
+    geom_errorbarh(data = filter(df, L1 == "English"),
+                   aes(xmin = (boot::boot.ci(bootres_SpaEn, index = 3, 
+                                             type = "perc")$percent[4]-1)*20,
+                       xmax = (boot::boot.ci(bootres_SpaEn, index = 3, 
+                                             type = "perc")$percent[5]-1)*20,
+                       y = 30), size = 2, height = 50) +
+    # aesthetic parameters
+    labs(x = "Divergence point (ms since adjective onset)", y = "Frequency") +
+    theme_light() +
+    theme(text=element_text(size=22, colour="gray28"),
+          axis.title.y = element_text(size = 24),
+          panel.spacing = unit(1.2, "lines"),
+          strip.text = element_text(size = 26)))
+
+```
+
+
+Next, we plot the distribution of differences in divergence points between 
+groups  (**Figure 5** of the manuscript).
+
+
+```{r Plot_boot_distributions_differences, align = "center", fig.height = 5, fig.width = 16}
+
+# Plot Figure 5 of the manuscript
+(fig_5 <- ggplot(subset(df, L1 %in% c("delta_l1l2", "delta_spen")), aes(onset)) + 
+   geom_histogram(binwidth = 20, fill = "grey30", colour = "grey30", alpha = .3) +
+   # create a panel for each language group
+   facet_grid(~L1, scales = "free", labeller = as_labeller(labels)) + 
+   # add vertical lines showing bias of the L1-L2 
+   # difference distribution
+   geom_vline(data = filter(df, L1 == "delta_l1l2"),
+              aes(xintercept = mean(bootres_L1L2$t0[1], na.rm = TRUE)*20), 
+              linetype = "dotted", size = 1.3) +
+   # add point and errorbar to show mean and 95% CI
+   geom_point(data = filter(df, L1 == "delta_l1l2"),
+              aes(x = mean(bootres_L1L2$t[,1], na.rm = TRUE)*20, y = 30), 
+              size = 8) +
+   geom_errorbarh(data = filter(df, L1 == "delta_l1l2"),
+                  aes(xmin = boot::boot.ci(bootres_L1L2, index = 1, 
+                                            type = "perc")$percent[4]*20,
+                      xmax = boot::boot.ci(bootres_L1L2, index = 1, 
+                                            type = "perc")$percent[5]*20,
+                      y = 30), size = 2, height = 50) +
+   # add vertical lines showing bias of the Spanish-English 
+   # difference distribution
+   geom_vline(data = filter(df, L1 == "delta_spen"),
+              aes(xintercept = mean(bootres_SpaEn$t0[1], na.rm = TRUE)*20), 
+              linetype = "dotted", size = 1.3) +
+   # add point and errorbar to show mean and 95% CI
+   geom_point(data = filter(df, L1 == "delta_spen"),
+              aes(x = mean(bootres_SpaEn$t[,1], na.rm = TRUE)*20, y = 30), 
+              size = 8) +
+   geom_errorbarh(data = filter(df, L1 == "delta_spen"),
+                  aes(xmin = boot::boot.ci(bootres_SpaEn, index = 1, 
+                                            type = "perc")$percent[4]*20,
+                      xmax = boot::boot.ci(bootres_SpaEn, index = 1, 
+                                            type = "perc")$percent[5]*20,
+                      y = 30), size = 2, height = 50) +
+   # aesthetic parameters
+   labs(x = "Difference in divergence points (ms)", y = "Frequency") +
+   theme_light() +
+   theme(strip.text = element_text(size = 30),
+         text = element_text(size = 30, colour="gray28"),
+         panel.spacing = unit(4, "lines")))
+
+```
+
+
+## 4.3 Add bootstrapped divergence points onto fixation curves (Figure 4B)
+
+```{r Plot_boot_DPs, fig.align="center", fig.height = 10, fig.width = 9}
+
+# Plot Figure 4B in the manuscript
+(fig_4b <- p + 
+  theme(text = element_text(size = 22),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
+        strip.text = element_text(size = 22)) +
+  geom_point(data = subset(dat_plot, L1 == "German"), 
+              aes(x = (mean(bootres_L1L2$t[,2], na.rm = TRUE)-1)*20, y = .48), 
+             size = 4) +
+  geom_errorbarh(data = subset(dat_plot, L1 == "German"),
+            aes(xmin = (boot::boot.ci(bootres_L1L2, index = 2, 
+                                      type = "perc")$perc[4]-1)*20, 
+                xmax = (boot::boot.ci(bootres_L1L2, index = 2, 
+                                      type = "perc")$perc[5]-1)*20,
+                y = .48), height = .1, size = 1) +
+  geom_point(data = subset(dat_plot, L1 == "Spanish"), 
+              aes(x = (mean(bootres_SpaEn$t[,2], na.rm = TRUE)-1)*20, y = .48), 
+             size = 4) + 
+  geom_errorbarh(data = subset(dat_plot, L1 == "Spanish"),
+            aes(xmin = (boot::boot.ci(bootres_SpaEn, index = 2, 
+                                      type = "perc")$perc[4]-1)*20,
+                xmax = (boot::boot.ci(bootres_SpaEn, index = 2, 
+                                      type = "perc")$perc[5]-1)*20,
+                y = .48), height = .1, size = 1) +
+  geom_point(data = subset(dat_plot, L1 == "English"), 
+              aes(x = (mean(bootres_SpaEn$t[,3], na.rm = TRUE)-1)*20, y = .48), 
+             size = 4) + 
+  geom_errorbarh(data = subset(dat_plot, L1 == "English"),
+            aes(xmin = (boot::boot.ci(bootres_SpaEn, index = 3, 
+                                      type = "perc")$perc[4]-1)*20, 
+                xmax = (boot::boot.ci(bootres_SpaEn, index = 3, 
+                                      type = "perc")$perc[5]-1)*20,
+                y = .48), height = .1, size = 1) )
+
+```
+
+
+# Appendix S2. Comparison of different statistical tests in the bootstrap approach
+
+In Section 4.2 of the text we use a one-sample t-test to test, at each timepoint, 
+whether fixations to the target differ significantly from fixations to the 
+competitor. The results of these tests are used to determine a divergence point, 
+which we then bootstrap. While we are ultimately basing statistical inference on 
+the resulting bootstrap distribution and not on the multiple t-tests, the choice 
+of test at this step may influence the mean and/or the variance of the resulting
+bootstrap distribution. In other words, our estimated divergence point may be 
+earlier or later depending on which test we use, or our confidence interval may 
+be narrower or wider. 
+
+To investigate how much the choice of test affected the resulting divergence 
+point estimates, we ran the bootstrap with a variety of tests, the results of 
+which are presented in Supplementary Materials S2. Based on these results, the 
+t-test appears to give an estimate that is comparable with other tests more 
+appropriate to the data, such as a logistic model with random  effects or 
+a linear model of weighted empirical logits. We provide code below for the 
+various different tests, should researchers prefer to use these instead.
+
+
+```{r Test_alternatives, eval = FALSE}
+
+# For the logistic regressions, we use the raw data, but we need to 
+# compute a variable that reflects the probability of fixating 
+# the target (pTarget)
+dat_g <- dat_raw %>%
+  subset(between(Time, 0, 1200)) %>%
+  # select only the regions that were fixated
+  filter(Value == 1) %>%
+  # select only the regions of interest
+  filter(Region %in% c("target_ia", "ccolor_ia")) %>%
+  # assign a 1 for fixation on the target and 0 otherwise
+  mutate(pTarget = ifelse(Region == "target_ia", 1, 0)) %>%
+  droplevels()
+
+# Fit glmer and extract the z-value
+dat_g %>%
+  group_by(Time) %>%
+  summarise(z = summary(lme4::glmer(pTarget ~ 1 + (1|Participant) + (1|Item), 
+            family="binomial", 
+            control=lme4::glmerControl(calc.derivs=FALSE)))$coefficients[1,3])
+
+# Fit glm and extract the z-value
+dat_g %>%
+  group_by(Time) %>%
+  summarise(z = summary(glm(pTarget ~ 1, family="binomial"))$coefficients[1,3])    
+
+
+# For the linear model of empirical logits, we first need to aggregate  
+# fixations across items
+dat_t <- dat_raw %>%
+    subset(between(Time, 0, 1200)) %>%
+    # select only the regions that were fixated
+    filter(Value == 1) %>%
+    # select only the regions of interest
+    filter(Region %in% c("target_ia", "ccolor_ia")) %>%
+    # assign a 1 for fixation on the target and 0 otherwise
+    mutate(pTarget = ifelse(Region == "target_ia", 1, 0)) %>%
+    # aggregate fixations over items
+    group_by(Participant, Time) %>%
+    summarise(SumFixation = sum(pTarget),
+              NFixation = length(pTarget))
+
+# Fit weighted linear model of empirical logits
+dat_t %>%
+  # create the empirical logits for target for each participant/timepoint
+  mutate(elog = log((SumFixation +.5) /(NFixation-SumFixation + .5)),
+         vs = (1/(SumFixation +.5) + 1 /(NFixation-SumFixation + .5) ),
+         wts = 1/vs) %>%
+  ungroup() %>%
+  # apply the linear model and extract the t-value at each timepoint
+  group_by(Time) %>%
+  summarise(t = summary(lm(elog ~ 1, weights = wts))$coefficients[1,3])
+
+
+```
+
+
+# Appendix S3. Comparison of bootstrap- and GAMM-derived divergence points
+
+In Supplementary Materials S3, we discuss the difference between divergence  
+points derived via the bootstrap method and GAMMs. Note that to run the code
+below, you will need to have the `mgcv` package installed.
+
+Here we show how we derived the GAMMs divergence points. For this, we fit a 
+GAMMs,extracted difference curve parameters, including a 95% confidence 
+interval, and then found the first confidence interval whose lower bound was 
+greater than zero. Because we were  interested in sustained looks to the target, 
+we added the criterion that the first lower bound greater than zero had to be 
+the first in a run of lower bounds that remained greater than zero for at least 
+200 ms in duration. This is comparable with  the bootstrap approach, where we 
+took the first in a run of 10 consecutive  significant time points as our 
+divergence point; with fixation samples every 20 ms, this is equivalent to a 
+200 ms time period. 
+
+However, it should be noted that estimating the divergence point this way in 
+GAMMs is not strictly appropriate given that we are basing our divergence point 
+estimate on discrete timestamps extracted from a model fit to continuous data. 
+The "true" divergence point according to the GAMM may therefore lie between two 
+of these timestamps, but this information is lost by treating the timestamps as 
+point estimates. We use the approach below for demonstrative purposes, but for 
+statistical inference, a more sophisticated approach would be required.
+
+```{r GAMM_onset, fig.show = "hide"}
+
+# Prepare the data
+dat_raw$Item <- factor(dat_raw$Item)
+dat_raw      <- dat_raw[dat_raw$Time >= 0 & dat_raw$Time <= 1200, ]
+
+# L1 German group
+german            <- droplevels(dat_raw[dat_raw$L1 == "German", ])
+german$Region     <- relevel(german$Region, "target_ia")
+german$Look       <- german$Value == 1
+german2           <- german[german$Value == 1,]
+german2           <- german[german$Region %in% c("target_ia", "ccolor_ia"),]
+german2           <- droplevels(german2[german2$Time > 0 & german2$Time < 1200, ])
+german2$RegionBin <- ifelse(german2$Region == "target_ia", 1, 0)
+
+# Create interaction term
+german2$TimeXRegion = german2$Value * german2$RegionBin 
+
+# Apply model
+gam.re.ge = mgcv::bam(Value ~ s(Time) + 
+     s(Time, by = RegionBin) + 
+     # intercepts 
+     s(Participant, bs = "re") + s(Item, bs = "re") + 
+     # slopes
+     s(Participant, Time, bs = "re") + s(Item, Time, bs = "re") + 
+     s(Participant, RegionBin, bs = "re") + s(Item, RegionBin, bs = "re"),
+     # interaction term gives singular correlation matrix so it is left out
+     # s(Participant, TimeXRegion, bs = "re") + s(Item, TimeXRegion, bs = "re")
+  family = "binomial",
+  data = german2)
+
+# View output
+summary(gam.re.ge)
+
+# L2 German group (Spanish and English groups combined)
+l2              <- droplevels(dat_raw[dat_raw$L1!="German", ])
+l2$Region       <- relevel(l2$Region, "target_ia")
+l2$Look         <- l2$Value == 1
+l22             <- l2[l2$Value == 1,]
+l22             <- l2[l2$Region %in% c("target_ia", "ccolor_ia"), ]
+l22             <- droplevels(l22[l22$Time > 0 & l22$Time < 1200, ])
+l22$RegionBin   <- ifelse(l22$Region == "target_ia", 1, 0)
+l22$TimeXRegion <- l22$Value * l22$RegionBin
+
+# Apply model
+gam.re.l2 = mgcv::bam(Value ~ s(Time) + 
+      s(Time, by = RegionBin) + 
+      # intercepts 
+      s(Participant, bs = "re") + s(Item, bs = "re") +
+      # slopes
+      s(Participant, Time, bs = "re") + s(Item, Time, bs = "re") +
+      s(Participant, RegionBin, bs = "re") + s(Item, RegionBin, bs = "re"), 
+      # interaction term gives singular correlation matrix so it is left out
+      # s(Participant, TimeXRegion, bs = "re") + s(Item, TimeXRegion, bs = "re")
+  family = "binomial",
+  data = l22)
+
+# View output
+summary(gam.re.l2)
+
+# Extract plot.gam estimates to plot difference curves using ggplot
+tmp.ge <- plot(gam.re.ge, select=2, scheme=1)
+fit    <- unlist(tmp.ge[[2]][10][[1]][,1])
+ci     <- unlist(tmp.ge[[2]][3][[1]]) 
+time   <- unlist(tmp.ge[[2]][1][[1]])
+df.ge  <- data.frame(time, fit, ci, L1 = "L1 German")
+
+tmp.l2 <- plot(gam.re.l2, select=2, scheme=1)
+fit    <- unlist(tmp.l2[[2]][10][[1]][,1])
+ci     <- unlist(tmp.l2[[2]][3][[1]]) 
+time   <- unlist(tmp.l2[[2]][1][[1]])
+df.l2  <- data.frame(time, fit, ci, L1 = "L2 German")
+
+df.gamm <- rbind(df.ge, df.l2)
+
+# Now we find the first lower bound of the 95% CI in a run of 200 ms that is 
+# greater than zero (corresponds with our criterion of 10 consecutive  
+# significant tests at samples every 20 ms)
+
+# Create a vector of lower bounds
+lowers.ge <- df.ge %>%
+  mutate(ci.lower = fit - ci)
+lowers.l2 <- df.l2 %>%
+  mutate(ci.lower = fit - ci)
+
+# Create a vector of T/F for is > 0
+overzero.ge <- lowers.ge$ci.lower > 0
+overzero.l2 <- lowers.l2$ci.lower > 0
+
+# Find indices where logical vector changes
+onsets.ge <- which(overzero.ge[-1] != overzero.ge[-length(overzero.ge)])
+onsets.l2 <- which(overzero.l2[-1] != overzero.l2[-length(overzero.l2)])
+
+# Find corresponding timestamps and subtract sequential ones  
+# to find whether > 200 ms
+times.ge <- c(lowers.ge$time[onsets.ge], tail(lowers.ge$time, n=1))
+timesx.ge <- lead(times.ge) - times.ge
+
+times.l2 <- c(lowers.l2$time[onsets.l2], tail(lowers.l2$time, n=1))
+timesx.l2 <- lead(times.l2) - times.l2
+
+# Find the earliest timestamp in the earliest run of 200 ms
+onsets <- tibble(nativeness = c("L1", "L2"), 
+                 onset = c(lowers.ge$time[onsets.ge[which(timesx.ge > 200)[2]]], 
+                           lowers.l2$time[onsets.l2[which(timesx.l2 > 200)[1]]]),
+                 ci.lower = NA,
+                 ci.upper = NA,
+                 Region = "target_ia",
+                 Time = 1,
+                 type = "gamm")
+
+```
+
+## Plotting GAMM- vs bootstrap-derived onsets
+
+Below is the code to plot **Figure S3** in the Supplementary Materials.
+
+```{r FigureS3, fig.align = "center", fig.height = 14, fig.width = 10}
+
+# Plot difference curves and onsets
+fig_s3a <- ggplot(df.gamm, aes(time, fit)) + geom_line(size = .7) + 
+  facet_grid(.~L1) +
+  geom_ribbon(aes(ymin = fit-ci, ymax = fit+ci), alpha = .4, 
+              fill = "grey70") +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_light() +
+  theme(text=element_text(size=20, colour="gray28"),
+        strip.text = element_text(size = 22),
+        legend.position = "none",
+        legend.title = element_blank(),
+        panel.spacing = unit(1.2, "lines")) +
+  geom_vline(data = subset(df.gamm, L1 == "L1 German"), 
+             aes(xintercept = onsets$onset[onsets$nativeness == "L1"]), 
+             linetype = "dashed", colour = "red2", size = 1) +
+  geom_vline(data = subset(df.gamm, L1 == "L2 German"), 
+             aes(xintercept = onsets$onset[onsets$nativeness == "L2"]), 
+             linetype = "dashed", colour = "red2", size = 1) +
+  geom_vline(xintercept = 900, linetype = "dashed", size = 1, 
+             colour = "darkgrey") +
+  geom_text(aes(y = 5.5, x = 850, label = "noun"), angle = 90, 
+            fontface = "italic", 
+            size = 7, colour = "darkgrey") +
+  labs(y = "Difference:\ntarget - competitor", 
+       x = "Time since adjective onset (ms)")
+
+# Load bootstrap results (if saved previously)
+bootres_L1L2  <- readRDS("bootres_L1L2.rds")
+bootres_SpaEn <- readRDS("bootres_SpaEn.rds")
+
+# Create plot data
+dat_plot <- dat_raw %>% 
+  # extract the critical window
+  subset(between(Time, 0, 1200)) %>%
+  # create mean and sum of fixations by participant, item, timepoint, 
+  # region and L1
+  group_by(Participant, Item, Time, Region, L1) %>% 
+  summarise(MeanFixation = mean(Value),
+            SumFixation = sum(Value),
+            NFixation = length(Value)) %>%
+  # extract the two regions of interest
+  subset(Region %in% c("target_ia", "ccolor_ia")) %>%
+  # discard unwanted factor levels
+  droplevels
+
+dat_plot <- dat_plot %>%
+  mutate(nativeness = ifelse(L1 == "German", "L1", "L2"))
+dat_plot$nativeness <- as.factor(dat_plot$nativeness)
+
+# Add nicer labels
+labels <- c(L1 = "L1 German", L2 = "L2 German")
+
+# Add to onsets dataframe to speed up plotting
+boots <- data.frame(nativeness = c("L1","L2"),
+                    onset = c((mean(bootres_L1L2$t[,2], na.rm = TRUE)-1)*20, 
+                              (mean(bootres_L1L2$t[,3], na.rm = TRUE)-1)*20),
+                    ci.lower = c((boot::boot.ci(bootres_L1L2, index = 2, 
+                                                type = "perc")$perc[4]-1)*20,
+                                 (boot::boot.ci(bootres_L1L2, index = 3, 
+                                                type = "perc")$perc[4]-1)*20),
+                    ci.upper = c((boot::boot.ci(bootres_L1L2, index = 2, 
+                                                type = "perc")$perc[5]-1)*20,
+                                 (boot::boot.ci(bootres_L1L2, index = 3, 
+                                                type = "perc")$perc[5]-1)*20),
+                    # dummy variables
+                    Region = "target_ia",
+                    Time = 1,
+                    type = "boot"
+                    
+)
+
+onsetsall    <- rbind(onsets, boots)
+onsetsall$L1 <- "German" # dummy variable
+
+# Base plot with fixation curves
+ggplot(dat_plot, aes(x = Time, y = MeanFixation, group = Region)) +
+  # plot the mean fixation proportions by region as a line
+  stat_summary(fun = mean, geom = "path",
+               aes(group = Region, colour = Region, linetype = Region), 
+               size = .7) +
+  # add a confidence interval
+  stat_summary(fun.data=mean_cl_boot, aes(fill = Region), geom = "ribbon", 
+               alpha = .1) +
+  # create a separate panel for each L1 group 
+  facet_grid(nativeness ~., #scales = "free_x", 
+             labeller = labeller(nativeness = labels)) +
+  # from here on is aesthetics
+  theme_light() +
+  theme(text=element_text(size=20, colour="gray28"),
+        strip.text = element_text(size = 22),
+        legend.position = "top",
+        legend.title = element_blank(),
+        panel.spacing = unit(1.2, "lines")) +
+  scale_colour_manual(values = c("#08519C", "#08519C"),
+                      breaks = c("target_ia", "ccolor_ia"),
+                      labels = c("target_ia", "color competitor")) +
+  scale_fill_manual(values = c("#08519C", "#08519C"),
+                    breaks = c("target_ia", "ccolor_ia"),
+                    labels = c("target_ia", "color competitor")) +
+  guides(colour = guide_legend(keywidth = 1, keyheight = 1, default.unit = "cm"),
+         fill = guide_legend(keywidth = 1, keyheight = 1, default.unit = "cm"),
+         linetype = guide_legend(keywidth = 1, keyheight = 1, 
+                                 default.unit = "cm")) +
+  scale_linetype_manual(values=c("solid","dotdash"),
+                        breaks = c("target_ia", "ccolor_ia"),
+                        labels = c("target_ia", "color competitor")) +
+  scale_y_continuous(breaks = seq(0, 1, by = .25),
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_x_continuous(breaks = seq(0, 1200, 200)) +
+  labs(x = "Time since adjective onset (ms)",
+       y = "Fixations to objects") +
+  geom_vline(xintercept = 900, linetype = "dashed", size = 1, 
+             colour = "darkgrey") +
+  annotate("text", label = "noun", y = .85, x = 850, angle = 90, 
+           fontface = "italic", size = 7, colour = "darkgrey") +
+  # Bootstrap onsets 
+  geom_point(data = subset(onsetsall, nativeness == "L1" & type == "boot"),
+             aes(x = onset, y = .48), size = 4) +
+  geom_errorbarh(data = subset(onsetsall, nativeness == "L1" & type == "boot"),
+                 aes(xmin = ci.lower,
+                     xmax = ci.upper,
+                     y = .48), height = .1, size = 1) +
+  geom_point(data = subset(onsetsall, nativeness == "L2" & type == "boot"),
+             aes(x = onset, y = .48), size = 4) +
+  geom_errorbarh(data = subset(onsetsall, nativeness == "L2" & type == "boot"),
+                 aes(xmin = ci.lower,
+                     xmax = ci.upper,
+                     y = .48), height = .1, size = 1) +
+  # GAMM onsets
+  geom_point(data = subset(onsetsall, nativeness == "L1" & type == "gamm"), 
+             aes(x = onset, y = .48), size = 6, 
+             colour = "red2", shape = 18) +
+  geom_point(data = subset(onsetsall, nativeness == "L2" & type == "gamm"), 
+             aes(x = onset, y = .48), size = 6, 
+             colour = "red2", shape = 18)-> fig_s3b
+
+# Compile plots
+(fig_s3 <- ggpubr::ggarrange(fig_s3a, fig_s3b, nrow =2, ncol = 1, 
+                               heights = c(.75, 1.25), labels = "AUTO", 
+                               font.label = list(size = 24), 
+                               vjust = 1, hjust = -.25))
+
+```
+
+
+# Appendix S4. Statistical tests of the bootstrapped estimates
+
+If desired, a p-value for these distributions can  be calculated by creating a 
+bootstrap distribution of the null hypothesis (Efron & Tibshirani, 1993).To do 
+this, the original fixation data from (for example) native and non-native 
+speakers are pooled, group labels are randomly assigned, and a difference in  
+divergence point estimated. The procedure is repeated many times to create a  
+distribution of divergence points that could be expected if there were no 
+true difference  between the groups. The p-value is the number of samples from 
+this null  distribution that are larger than the observed difference in 
+divergence points in the empirical data. 
+
+
+```{r Bootstrap_pvals_setup, eval = TRUE}
+
+# Prepare the data for the L1-L2 comparison
+dat_boot_L1L2 <- dat_raw %>%
+  # add a new variable to group the English and Spanish groups
+  mutate(Nativeness = ifelse(L1 == "German", "Native", "NonNative")) %>%
+  # select target time window (as above)
+  subset(between(Time, 0, 1200)) %>%
+  # create stratification variables
+  mutate(StrataVars = paste(Participant, Region, Time, sep = "")) %>%
+  # drop unwanted factor levels
+  droplevels()
+
+# Factorize necessary variables 
+dat_boot_L1L2$StrataVars <- as.factor(dat_boot_L1L2$StrataVars)
+dat_boot_L1L2$Nativeness <- as.factor(dat_boot_L1L2$Nativeness)
+
+
+# Prepare the data as for the L1 Spanish-English comparison
+dat_boot_SpaEn <- dat_raw %>%
+  # add a new variable to group the English and Spanish groups
+  mutate(Nativeness = ifelse(L1 == "German", "Native", "NonNative")) %>%
+  # select target time window (as above) 
+  subset(between(Time, 0, 1250)) %>%
+  # create stratification variables
+  mutate(StrataVars = paste(Participant, Region, Time, sep = "")) %>%
+  # drop unwanted factor levels
+  droplevels()
+
+# Factorize necessary variables 
+dat_boot_SpaEn$StrataVars <- as.factor(dat_boot_SpaEn$StrataVars)
+dat_boot_SpaEn$Nativeness <- as.factor(dat_boot_SpaEn$Nativeness)
+
+```
+
+
+## *P-values: L1 vs. L2 speakers*
+
+We calculate p-values for the L1-L2 between-group comparison. Once the bootstrap
+initializes, a progress bar will give an estimate of how long the computation 
+will take.
+
+
+```{r Bootstrap_pvals_L1L2, eval = FALSE}
+
+# L1 vs. L2 speakers 
+
+# Define a bootstrap function with an extra shuffling step
+boot_L1L2_pval <- function(original_data, resample_indices){
+
+  # 1. pull out the structure of the given dataframe
+  dat_resample <- original_data[resample_indices, ]
+  
+  # 2. update progress bar
+  prog$tick()$print()
+  
+  # 3. shuffle the condition labels
+  dat <- dat_resample %>%
+    group_by(Participant, Time, Region) %>%
+    # native and non-native labels are randomly reassigned
+    transform(Nativeness = sample(Nativeness, replace = FALSE)) %>%
+    ungroup() %>%
+    # keep only rows where either the target or competitor were fixated
+    filter(Value == 1 & Region %in% c("target_ia","ccolor_ia")) %>%
+    # create a new variable indicated whether or not the target was fixated
+    mutate(pTarget = ifelse(Region=="target_ia", 1, 0)) %>%
+    # average fixation proportions by participant and time, keeping speaker group
+    group_by(Participant, Time, Nativeness) %>%
+    summarise(MeanFixation = mean(pTarget)) 
+  
+  # 4. apply statistical test in each bin
+  test_ge <- dat %>%
+    subset(Nativeness == "Native") %>%
+    group_by(Time) %>%
+    summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+  
+  test_l2 <- dat %>%
+    subset(Nativeness == "NonNative") %>%
+    group_by(Time) %>%
+    summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+
+  # 5. return a TRUE/FALSE vector of significant positive z-scores 
+  # (positive means more looks to the target than competitor)
+  t_ge <- test_ge$t > 1.96
+  t_l2 <- test_l2$t > 1.96
+
+  # 6. create empty vectors to store onsets in
+  onset_ge <- onset_l2 <- c()
+  
+  # 7. find the index of the earliest run of 10 sequential TRUEs 
+  for (i in 1:(length(t_l2)-10)) {
+    onset_ge[i] <- sum(t_ge[i:(i+9)]) == 10
+    onset_l2[i] <- sum(t_l2[i:(i+9)]) == 10
+  }
+
+  # 8. find the difference in onset
+  delta_l1l2 <- which(onset_l2)[1] - which(onset_ge)[1]
+
+  # 9. print
+  c(
+    delta_l1l2 # difference in onset native vs. non-native t[,1]
+  )
+}
+
+# Set number of iterations
+Niter <- 2000
+
+# Initialize progress bar
+prog <- dplyr::progress_estimated(Niter + 1)
+
+# Run the bootstrap. 
+bootres_L1L2_pval <- boot::boot(data = dat_boot_L1L2, 
+                                statistic = boot_L1L2_pval,
+                                strata = dat_boot_L1L2$StrataVars,
+                                R = Niter)
+
+# Compute the probability of the original difference estimate being 
+# found in the null distribution. For this, we find the mean proportion 
+# of divergence points in the bootstrap distribution with randomly 
+# reassigned labels that is greater than or equal to the divergence point 
+# computed  from the real data (this is found in t0 of the bootstrap object 
+# created in Section 4). This yields our p-value:
+round(mean(bootres_L1L2_pval$t[,1] >= bootres_L1L2$t0[1], na.rm = TRUE), 3)
+
+# Save
+saveRDS(bootres_L1L2_pval, "./bootres_L1L2_pval.rds")
+
+```
+
+
+## *P-values: Spanish vs. English speakers*
+
+We calculate p-values for the L1 Spanish vs. English between-group comparison. 
+Once the bootstrap initializes, a progress bar will give an estimate of how 
+long the computation will take.
+
+
+```{r Bootstrap_pvals_SpaEn, eval = FALSE}
+
+# Spanish vs. English speakers
+
+# Define a bootstrap function with an extra shuffling step
+boot_SpaEn_pval <- function(original_data, resample_indices){
+
+  # 1. pull out the structure of the given dataframe
+  dat_resample <- original_data[resample_indices, ]
+  
+  # 2. update progress bar
+  prog$tick()$print()
+  
+  # 3. shuffle the condition labels
+  dat <- dat_resample %>%
+    filter(L1 != "German") %>%
+    group_by(Participant, Time, Region) %>%
+    transform(L1 = sample(L1, replace = FALSE)) %>%
+    ungroup() %>%
+    # keep only rows where either the target or competitor were fixated
+    filter(Value == 1 & Region %in% c("target_ia","ccolor_ia")) %>%
+    # create a new variable indicated whether or not the target was fixated
+    mutate(pTarget = ifelse(Region=="target_ia", 1, 0)) %>%
+    # average fixation proportions by participant and time, keeping speaker group
+    group_by(Participant, Time, L1) %>%
+    summarise(MeanFixation = mean(pTarget)) 
+
+  # 4. apply statistical test in each bin
+  test_sp <- dat %>%
+    subset(L1 == "Spanish") %>%
+    group_by(Time) %>%
+    summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+
+  test_en <- dat %>%
+    subset(L1 == "English") %>%
+    group_by(Time) %>%
+    summarise(t = t.test(MeanFixation, mu = .5)$statistic[[1]])
+
+  # 5. return a TRUE/FALSE vector of significant POSITIVE z-scores 
+  # (positive means more looks to the target than competitor)
+  t_sp <- test_sp$t > 1.96
+  t_en <- test_en$t > 1.96
+
+  # 6. create empty vectors to store onsets in
+  onset_sp <- onset_en <- c()
+  
+  # 7. find the index of the earliest run of 10 sequential TRUEs 
+  for (i in 1:(length(t_en)-10)) { 
+    onset_sp[i] <- sum(t_sp[i:(i+9)]) == 10
+    onset_en[i] <- sum(t_en[i:(i+9)]) == 10
+  }
+  
+  # 8. find the difference in onset
+  delta_spen <- which(onset_sp)[1] - which(onset_en)[1]
+
+  # 9. print
+  c(
+    delta_spen # onset difference Spanish vs. English t[,1]
+  )
+}
+
+# Set number of iterations
+Niter <- 2000
+
+# Initialize progress bar
+prog <- dplyr::progress_estimated(Niter + 1)
+
+# Run the bootstrap.
+bootres_SpaEn_pval <- boot::boot(dat_boot_SpaEn, 
+                                 boot_SpaEn_pval, 
+                                 strata = dat_boot_SpaEn$StrataVars,
+                                 R = Niter)
+                               
+# Compute the probability of the original difference  
+# estimate being found in  the null distribution
+round(mean(bootres_SpaEn_pval$t[,1] >= bootres_SpaEn$t0[1], na.rm = TRUE), 3)
+
+# Save
+saveRDS(bootres_SpaEn_pval, "./bootres_SpaEn_pval.rds")
+
+```
+
+
+# R package versions
+
+```{r}
+installed.packages()[names(sessionInfo()$otherPkgs), "Version"]
+``` 

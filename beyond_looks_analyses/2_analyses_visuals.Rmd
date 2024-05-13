@@ -511,37 +511,92 @@ mean_fixation_dur <- kbh_w_items %>%
 
 #Get average looking to target and looking to distractor for each 220-ms time bin (the reference paper used 10-ms time bins, but their eyetracker sampled every 2ms and ours only did ever 16-17 ms)
 
-
-eyetracking_r_data <- kbh_w_items %>%
+copy_data <- kbh_w_items %>%
   filter(noun_onset>= -2000 & noun_onset <= 3000)%>%
   mutate(timestamp_zero_interest_period = noun_onset - 360,
          trial_unique = paste0(recording_name, "_", trial_number, "_", media_name)) %>%
   ungroup()%>%
-  make_eyetrackingr_data(participant_column = "recording_name",
-                       trial_column = "trial_unique",
-                       time_column = "timestamp_zero_interest_period",
-                       trackloss_column = "trackloss",
-                       aoi_columns = c('target','distractor'),
-                       treat_non_aoi_looks_as_missing = FALSE
-                ) %>%
-  mutate(where_looking = as.factor(case_when(target == TRUE ~ "target",
-                                             distractor == TRUE ~ "distractor",
-                                             TRUE ~ "neither")))
+  group_by(recording_name, trial_number, media_name, age_months) %>%
+  mutate(new_noun_onset = case_when(abs(noun_onset) == min(abs(noun_onset)) ~ 0)) %>% 
+  select(recording_name, trial_number, recording_timestamp, trial_from_zero, noun_onset, new_noun_onset, target, distractor, trackloss, age_months) %>% 
+  mutate(parallel_timestamp = (row_number() - which(new_noun_onset == 0))*(1000/60),
+         parallel_timestamp = round(parallel_timestamp)) %>%
+  select(media_name, recording_name, trial_number, parallel_timestamp, target, distractor, trackloss, age_months) %>%
+  pivot_longer(c(target, distractor), names_to = "aoi", values_to = "value") %>%
+  arrange(recording_name, trial_number, aoi, parallel_timestamp) %>%
+  mutate(value = as.numeric(value)) %>%
+  filter(trackloss == FALSE) %>%
+  ungroup() %>%
+  mutate(age_group = case_when(age_months >= 14 & age_months < 21 ~ "14-20",
+                               age_months >= 21 & age_months < 31 ~ "21-30",
+                               age_months >= 31 & age_months < 51 ~ "31-48"))
 
-prop_fixation_duration <- eyetracking_r_data  %>%
-  rename(aa_target = target,
-         bb_distractor = distractor) %>%
-  make_time_sequence_data(time_bin_size = 200, 
-                          #predictor_columns = "where_looking",
-                          aois = c("aa_target", "bb_distractor"),
-                          summarize_by = "recording_name" )
-#check plot
-prop_fixation_duration %>%
-  ggplot(aes(x = TimeBin, y = Prop, color = AOI)) +
-  geom_smooth() 
+copy_dat_fig1 <- copy_data %>%
+  group_by(recording_name, aoi, parallel_timestamp, age_group) %>%
+  summarise(mean_fixation = mean(value))
 
-what_happens <- analyze_time_bins(data = prop_fixation_duration, predictor_column = "AOI", test = "t.test", p_adjust_method = "bonferroni", alpha = .05)
+#This takes a little while to run because of the bootstrapping
+base_plot <- ggplot(copy_dat_fig1, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
+  geom_vline(xintercept=0, linetype="dashed", colour="gray28") +
+  stat_summary(fun.data=mean_cl_boot, aes(fill=aoi),
+               geom="ribbon", alpha=.2, linetype="blank") +
+  stat_summary(fun=mean, geom="path", 
+               aes(group=aoi, linetype=aoi), size=.7) + facet_wrap(~age_group)
 
+copy_dat_stat <- copy_data %>%
+  filter(parallel_timestamp >= -1000 & parallel_timestamp <= 2500)
+
+#Apply statistical test to each time point
+copy_p_table <- copy_dat_stat %>%
+  # select only rows in the dataframe where a fixation occurred
+  filter(value == 1) %>%
+  # label fixations that were on the target as 1 and as 0 otherwise,
+  mutate(looking_to_target = ifelse(aoi == "target", 1, 0)) %>%
+  # we want to test for each timepoint
+  group_by(parallel_timestamp) %>%
+  # apply logistic regression and extract z-values
+  summarise(z = summary(lme4::glmer(looking_to_target ~ 1 +
+  (1|recording_name), family="binomial",
+  control=lme4::glmerControl(calc.derivs=FALSE)))$coefficients[1,3]) %>%
+  # add p-values
+  mutate(p = pnorm(-abs(z))*2)
+
+# Set alpha level and calculate Bonferroni correction
+alpha           <- 0.05
+N_tests         <- length(unique(copy_dat_stat$parallel_timestamp))
+alpha_corrected <- alpha/N_tests
+
+# Find the earliest timepoint with a significant uncorrected p-value
+(uncorr <- copy_p_table %>%
+  # extract positive z-scores ("target advantage") and significant p-values
+  filter(z > 0, p < alpha) %>% 
+  # extract the earliest significant p-value and its timepoint 
+  slice(1))
+
+# Find the earliest timepoint that survives the Bonferroni correction
+(bnf <- copy_p_table %>%
+  filter(z > 0, p < alpha_corrected) %>% 
+  slice(1))
+
+# Find the earliest timepoint after FDR control
+(fdr <- copy_p_table %>%
+  # apply FDR control from `stats` package
+  mutate(p_fdr = stats::p.adjust(p, method = "BY", n = length(p))) %>%
+  filter(z > 0, p_fdr < alpha) %>%
+  slice(1))
+
+plot_points <- tibble(correction = c("Uncorrected", "Bonferroni", "FDR"), 
+                      parallel_timestamp = c(uncorr$parallel_timestamp, bnf$parallel_timestamp, fdr$parallel_timestamp),
+                      mean_fixation = .5,
+                      aoi = "target")
+
+overall_plot <- ggplot(copy_dat_fig1, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
+  geom_vline(xintercept=0, linetype="dashed", colour="gray28") +
+  stat_summary(fun.data=mean_cl_boot, aes(fill=aoi),
+               geom="ribbon", alpha=.2, linetype="blank") +
+  stat_summary(fun=mean, geom="path", 
+               aes(group=aoi, linetype=aoi), size=.7) +
+  geom_point(data = plot_points, color = "black", aes(shape = plot_points$correction))
 
 
 
@@ -551,62 +606,78 @@ what_happens <- analyze_time_bins(data = prop_fixation_duration, predictor_colum
 #In Liz's paper they contrasted time slice by time slice across two conditions, but here we don't have switched and same language conditions. I'll do average size at baseline and avg size after noun onset for now. But then talk with team about it.
 
 
-pupil_dilation <- kbh_data_clean %>%
+pupil_dilation <- kbh_w_items %>%
   filter(noun_onset>= -200 & noun_onset <= 500)%>%
 mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
                                 TRUE ~ "post_onset"))%>% 
   select(recording_timestamp, subject_id, recording_name, trial_number, media_name, pupil_period, pupil_right, pupil_left) %>%
-  drop_na(pupil_right) %>%
-  drop_na(pupil_left)
-
-pupil_dilation$two_pupil_mean <- rowMeans(pupil_dilation[c("pupil_right", "pupil_left")]) #Adding a mean between left and right pupil.
+  mutate(two_pupil_mean = case_when(is.na(pupil_left) & is.na(pupil_right) ~ NA,
+                                         is.na(pupil_left)  ~ pupil_right,
+                                         is.na(pupil_right) ~ pupil_left,
+                                         TRUE ~ (pupil_left + pupil_right)/2)) %>%
+  filter(!is.na(two_pupil_mean))
 
 #The next steps are confusing to me.Should we average baseline pupil? Should we contrast each post onset time slice to a partricular baseline time slice? We could use mean dilation, peak dilation (or peak amplitude), and/or peak latency (i.e., the time between onset and peak pupil dilation). The problem with mean dilation is that the baseline has less sampling than the post-onset. Could we do peak dilation of baseline vs. peak dilation post onset? Or peak dilation but from which baseline point? from peak? We will for sure do GCA's as extra analyses
 
 #Peak dilation
 peak_dilation <- pupil_dilation %>%
   ungroup()%>%
-  group_by(recording_name, media_name, pupil_period) %>%
-  summarise(max(two_pupil_mean)) %>%
-  pivot_wider(names_from = pupil_period, values_from ="max(two_pupil_mean)")%>%
-  mutate(peak_pupil_size_difference = post_onset - baseline) #difference in peak pupil points
-
+  group_by(recording_name, trial_number, media_name, pupil_period) %>%
+  summarise(peak_pupil = max(two_pupil_mean)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="peak_pupil")%>%
+  mutate(peak_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
+  filter(!is.na(peak_pupil_size_difference)) %>%
+  rename(max_pupil_baseline = baseline,
+         max_pupil_post_onset = post_onset)
   
 #Mean dilation
 mean_dilation <- pupil_dilation %>%
-  ungroup() %>%
-  group_by(recording_name, media_name, pupil_period) %>%
-  summarise(mean(two_pupil_mean)) %>%
-  pivot_wider(names_from = pupil_period, values_from ="mean(two_pupil_mean)")%>%
-  mutate(mean_pupil_size_difference = post_onset - baseline) #difference in means
+  ungroup()%>%
+  group_by(recording_name, trial_number, media_name, pupil_period) %>%
+  summarise(mean_pupil = mean(two_pupil_mean, na.rm = T)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="mean_pupil")%>%
+  mutate(mean_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
+  filter(!is.na(mean_pupil_size_difference)) %>%
+  rename(mean_pupil_baseline = baseline,
+         mean_pupil_post_onset = post_onset)
+  
 
 
 #peak latency
 peak_pupil_latency <- pupil_dilation %>%
   ungroup()%>%
-  group_by(recording_name, media_name, pupil_period) %>%
+  group_by(recording_name, media_name, pupil_period, trial_number) %>%
   slice(which.max(two_pupil_mean)) %>%
   select(recording_name, media_name, pupil_period, peak_time_stamp = recording_timestamp) %>%
- #Slice is giving me only the max meassures of pupil, then I am selecting the timestamp corresponding to the max measures by baseline versus post_noun onset
- pivot_wider(names_from = pupil_period, values_from =peak_time_stamp) %>%
-  mutate(peak_pupil_size_latency = post_onset - baseline) #time between baseline peak and post onset peak.
+  group_by(recording_name, trial_number, media_name) %>%
+  summarise(peak_pupil_latency = diff(peak_time_stamp))
 
 
 #11. Duration of first look
-### Duration of the first look recorded toward a particular AOI.
+### Duration of the first look recorded toward a particular AOI. - To target specifically, with at least 200 ms fixation length
 
-first_look_duration <- kbh_data_clean  %>%
-  filter(noun_onset >= 360 & noun_onset <= 3000) %>%   
-  mutate(AOI_switches = ifelse(target == TRUE & lag(target) == FALSE | target == FALSE & lag(target) == TRUE, 1, 0)) %>%
-    filter(AOI_switches == 1) %>%
-     group_by(recording_name, subject_id, trial_number, media_name,noun_onset) %>%  
-  summarise() %>%
-  arrange(recording_name, trial_number, by_group = T) %>%
-  mutate(number_of_trial_instance = row_number()) %>%  #I only want to keep the first instance of switch because I am only interested in the duration of the very first look during the trial analyses window.
-filter(number_of_trial_instance == 1) %>%
-  mutate(first_look_dur = noun_onset - 360) 
+first_look_duration <- kbh_w_items %>%
+  ungroup() %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  group_by(recording_name, trial_number) %>% 
+  mutate(targets_in_a_row = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, targets_in_a_row) %>%
+  mutate(row = row_number()) %>% 
+  mutate(where_looking = case_when(target == TRUE ~ "target",
+                                   distractor == TRUE ~ "distractor",
+                                   TRUE ~ "neither")) %>%
+  filter(where_looking == "target") %>%
+  mutate(first_look_dur = max(row_number())*(1000/60)) %>% 
+  filter(first_look_dur >= 200) %>%
+  group_by(recording_name, trial_number) %>%
+  filter(targets_in_a_row == min(targets_in_a_row)) %>% 
+  ungroup() %>%
+  distinct(recording_name, trial_number, media_name, first_look_dur)
+ 
 
 ```
+
+
 ```{r merging newly created DVs to the original dataset}
 
 #clean variables to be merged
