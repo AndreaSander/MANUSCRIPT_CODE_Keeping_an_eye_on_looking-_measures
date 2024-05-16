@@ -41,7 +41,7 @@ kbh_data_clean <- arch_final%>%
   mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
                                gaze_point_x> 1920 ~ TRUE,
                                gaze_point_y<0 ~ TRUE,
-                               gaze_point_y > 1200 ~ TRUE,
+                               gaze_point_y > 1080 ~ TRUE,
                                is.na(gaze_point_x) ~ TRUE,
                                is.na(gaze_point_y) ~ TRUE,
                                is.na(validity_left) ~ TRUE,
@@ -61,7 +61,12 @@ kbh_data_clean <- kbh_data_clean %>%
   mutate(trial_lang = case_when(str_detect(studio_test_name,"E")~ "english",
                                 str_detect(studio_test_name, "F")~ "french")) %>%
   mutate(exp_to_target_lang = case_when(trial_lang == "english" ~ eng_exp,
-                                        trial_lang == "french" ~ fre_exp))
+                                        trial_lang == "french" ~ fre_exp)) %>%
+  #Make trackloss rows NA for target and distractor, since we can't say for certain where the gaze is
+  mutate(target = case_when(trackloss == TRUE ~ NA,
+                            TRUE ~ target),
+         distractor = case_when(trackloss == TRUE ~ NA,
+                                TRUE ~ distractor))
 
 
 #Add a column with the yoked pairs information---yoking info taken from lab server
@@ -325,7 +330,7 @@ prop_looking_diff <- kbh_w_items %>%
 
 # Group by subject and summarize consecutive TRUE values in target column - we are counting how many consecutive groups of 12 rows of TRUE target looks there are per trial, which is around 200 ms of looking. We are counting each group of 200 ms of looking as one fixation.
 
-fixations_total <- kbh_w_items   %>%
+sampling_fixations_total <- kbh_w_items %>%
   ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
   group_by(recording_name, trial_number) %>%
@@ -333,16 +338,36 @@ fixations_total <- kbh_w_items   %>%
   group_by(trackloss_group_id, recording_name, trial_number) %>%
   mutate(num_consec_trackloss_rows = n()) %>%
   ungroup() %>%
-  filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows > 2)) %>%
+  filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows >= 2)) %>%
   group_by(recording_name, trial_number) %>% 
-  mutate(targets_in_a_row = data.table::rleid(target)) %>%
-  group_by(recording_name, trial_number, targets_in_a_row) %>%
+  mutate(looking_stretch_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, looking_stretch_id) %>%
   mutate(row = row_number(), 
          multi_of_twelve = case_when(row %% 12 == 0 & target == TRUE ~ "fixation")) %>% 
   group_by(recording_name, subject_id, trial_number, media_name) %>%
-  summarise(consecutive_target = sum(multi_of_twelve == "fixation", na.rm = T)) %>%
+  summarise(number_sampling_fixations = sum(multi_of_twelve == "fixation", na.rm = T)) %>%
   ungroup()
 
+#For this one, stretches of same looks are counted as one fixation
+fixations_total <- kbh_w_items %>%
+  ungroup() %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  group_by(recording_name, trial_number) %>%
+  mutate(trackloss_group_id = data.table::rleid(trackloss)) %>%
+  group_by(trackloss_group_id, recording_name, trial_number) %>%
+  mutate(num_consec_trackloss_rows = n()) %>%
+  ungroup() %>%
+  filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows >= 2)) %>%
+  group_by(recording_name, trial_number) %>% 
+  mutate(looking_stretch_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, looking_stretch_id) %>%
+  #filter to fixations of at least 12 rows or ~ 200 ms
+  filter(n() >= 12) %>%
+  #filter to target fixations
+  filter(target == TRUE) %>%
+  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  summarise(number_fixations = length(unique(looking_stretch_id))) %>%
+  ungroup()
   
 #4. Correct first shift to target
 #On trials where infants were fixated on the distractor upon hearing the target word (i.e., distractor-initial trials), the number of first shifts to the target picture within the 300–1,800 ms window following target word onset, as a proportion of all distractor-initial trials.
@@ -355,8 +380,8 @@ first_shift_target <- kbh_w_items %>%
   
     #Grouping and summarizing to get by subject by trial flagging of whether there was switching or not.
      group_by(recording_name, subject_id, trial_number, media_name, initial_look) %>%  
-  summarise(target = sum(target),
-            distractor =  sum(distractor)) %>% #Counting how many looks to target and distractor by timeslice grouped by target or distractor initial trials.
+  summarise(target = sum(target, na.rm = T),
+            distractor =  sum(distractor, na.rm = T)) %>% #Counting how many looks to target and distractor by timeslice grouped by target or distractor initial trials.
   ungroup() %>%
   mutate(correct_shift = case_when(initial_look == "target" & distractor ==0 ~ TRUE,
                                    initial_look == "distractor" & target >0 ~ TRUE,
@@ -388,21 +413,23 @@ RT <- kbh_w_items %>%
   mutate(latency_to_switch = noun_onset - 360) 
 
 
-#6. Total number of switches between AOIs - come back to this after discussion about whether to keep the part that specifies there must be 12 rows of same looks to be counted as a fixation before determining switches
+#6. Total number of switches between AOIs
 
 number_of_switches <- kbh_w_items %>%
   ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  #for this one, get rid of track loss rows
+  filter(trackloss == FALSE) %>%
   group_by(recording_name, trial_number) %>% 
-  mutate(targets_in_a_row = data.table::rleid(target)) %>%
-  group_by(recording_name, trial_number, targets_in_a_row) %>%
-  mutate(row = row_number(), 
-         multi_of_twelve = case_when(row %% 12 == 0 ~ "fixation")) %>% 
-  filter(multi_of_twelve == "fixation") %>%
+  mutate(looking_stretch_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, looking_stretch_id) %>%
+  #keep stretches that are at least 200 ms or 12 rows
+  filter(n() >= 12) %>%
   mutate(where_looking = case_when(target == TRUE ~ "target",
                                    distractor == TRUE ~ "distractor",
                                    TRUE ~ "neither")) %>%
   filter(where_looking != "neither") %>%
+  distinct(recording_name, trial_number, looking_stretch_id, where_looking, media_name, subject_id) %>%
   group_by(recording_name, trial_number) %>%
   mutate(AOI_switches = case_when(lag(where_looking) == "target" & where_looking == "distractor" ~ 1,
                             lag(where_looking) == "distractor" & where_looking == "target" ~ 1)) %>%
@@ -411,56 +438,56 @@ number_of_switches <- kbh_w_items %>%
   ungroup()
   
   
-#7. Mean latency of refixation during trial - COME BACK TO THIS
+#7. Mean latency of refixation during trial - COME BACK TO THIS ------- We decided to eliminate this one because our studies don't have a central image from which to refixate, and when we tried adding a narrow central strip, no one was looking there.
 #Mean latency of correct saccadic shifts from the center to the peripheral target (refixations) during the trial. 
 #I would need to calculate the center point (shouldn't be too hard)
-
-kbh_data_center <- arch_final%>%
-  group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
-  mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
-  group_by(studio_project_name)%>%
-  mutate(noun_onset = case_when(studio_project_name=="CompMix-36"~trial_from_zero-3000, #Substracting noun onset to normalize
-                                studio_project_name=="LearnMix-36"~trial_from_zero-4500,
-                                studio_project_name=="Mix-20"~trial_from_zero-5400,
-                                studio_project_name=="Mix-14"~trial_from_zero-5400,
-                                studio_project_name=="CogMisp-24"~trial_from_zero-1500))%>%
-  ungroup()%>%
-  rename(target_side=target, distractor_side=distractor,
-         gaze_point_x= gaze_point_x_adc_spx, 
-         gaze_point_y = gaze_point_y_adc_spx)%>%
-  mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
-                               gaze_point_x> 1920 ~ TRUE,
-                               gaze_point_y<0 ~ TRUE,
-                               gaze_point_y > 1200 ~ TRUE,
-                               is.na(gaze_point_x) ~ TRUE,
-                               is.na(gaze_point_y) ~ TRUE,
-                               is.na(validity_left) ~ TRUE,
-                               is.na(validity_right) ~ TRUE,
-                               validity_left > 1 ~ TRUE,
-                               validity_right > 1 ~ TRUE,
-                               TRUE~ FALSE)) %>% #MAKE VISUALIZATIONS ABOUT TRACKLOSS FOR SANITY CHECK
-  mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
-                            TRUE~FALSE)) %>%
-  mutate(distractor = case_when(gaze_point_x >= distractor_x_min&gaze_point_x <= distractor_x_max&gaze_point_y >= distractor_y_min&gaze_point_y <= distractor_y_max~TRUE, 
-                                 TRUE ~ FALSE)) %>%
-  mutate(looks_to_center = case_when(gaze_point_x >= 950 & gaze_point_x <= 970 &gaze_point_y >= 0&gaze_point_y <= 1080 ~ TRUE,
-                                     TRUE~ FALSE)) %>% #creating a looks to center column
-mutate(where_looking = case_when(target == TRUE & looks_to_center == FALSE~ "target",
-                         target == TRUE & looks_to_center == TRUE~ "center",
-                         distractor == TRUE & looks_to_center == TRUE~ "center",
-                         distractor == TRUE & looks_to_center == FALSE~ "distractor",
-                         target == FALSE & distractor == FALSE & looks_to_center == TRUE ~ "center",
-                         TRUE ~ "neither"))
-
-
-mean_latency_refixation <- kbh_data_center %>%
-  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-  group_by(recording_name, trial_number) %>%
-  select(looks, media_name, studio_project_name, studio_test_name, trial_number, recording_name, recording_timestamp, where_looking) %>%
-  mutate(looking_area_id = data.table::rleid(where_looking)) %>%
-  group_by(recording_name, trial_number, looking_area_id) %>%
-  mutate(how_long_looking_area = n(),
-         length_center_look = case_when(where_looking == "center" ~ how_long_looking_area))
+# 
+# kbh_data_center <- arch_final%>%
+#   group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
+#   mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
+#   group_by(studio_project_name)%>%
+#   mutate(noun_onset = case_when(studio_project_name=="CompMix-36"~trial_from_zero-3000, #Substracting noun onset to normalize
+#                                 studio_project_name=="LearnMix-36"~trial_from_zero-4500,
+#                                 studio_project_name=="Mix-20"~trial_from_zero-5400,
+#                                 studio_project_name=="Mix-14"~trial_from_zero-5400,
+#                                 studio_project_name=="CogMisp-24"~trial_from_zero-1500))%>%
+#   ungroup()%>%
+#   rename(target_side=target, distractor_side=distractor,
+#          gaze_point_x= gaze_point_x_adc_spx, 
+#          gaze_point_y = gaze_point_y_adc_spx)%>%
+#   mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
+#                                gaze_point_x> 1920 ~ TRUE,
+#                                gaze_point_y<0 ~ TRUE,
+#                                gaze_point_y > 1200 ~ TRUE,
+#                                is.na(gaze_point_x) ~ TRUE,
+#                                is.na(gaze_point_y) ~ TRUE,
+#                                is.na(validity_left) ~ TRUE,
+#                                is.na(validity_right) ~ TRUE,
+#                                validity_left > 1 ~ TRUE,
+#                                validity_right > 1 ~ TRUE,
+#                                TRUE~ FALSE)) %>% #MAKE VISUALIZATIONS ABOUT TRACKLOSS FOR SANITY CHECK
+#   mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
+#                             TRUE~FALSE)) %>%
+#   mutate(distractor = case_when(gaze_point_x >= distractor_x_min&gaze_point_x <= distractor_x_max&gaze_point_y >= distractor_y_min&gaze_point_y <= distractor_y_max~TRUE, 
+#                                  TRUE ~ FALSE)) %>%
+#   mutate(looks_to_center = case_when(gaze_point_x >= 950 & gaze_point_x <= 970 &gaze_point_y >= 0&gaze_point_y <= 1080 ~ TRUE,
+#                                      TRUE~ FALSE)) %>% #creating a looks to center column
+# mutate(where_looking = case_when(target == TRUE & looks_to_center == FALSE~ "target",
+#                          target == TRUE & looks_to_center == TRUE~ "center",
+#                          distractor == TRUE & looks_to_center == TRUE~ "center",
+#                          distractor == TRUE & looks_to_center == FALSE~ "distractor",
+#                          target == FALSE & distractor == FALSE & looks_to_center == TRUE ~ "center",
+#                          TRUE ~ "neither"))
+# 
+# 
+# mean_latency_refixation <- kbh_data_center %>%
+#   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+#   group_by(recording_name, trial_number) %>%
+#   select(looks, media_name, studio_project_name, studio_test_name, trial_number, recording_name, recording_timestamp, where_looking) %>%
+#   mutate(looking_area_id = data.table::rleid(where_looking)) %>%
+#   group_by(recording_name, trial_number, looking_area_id) %>%
+#   mutate(how_long_looking_area = n(),
+#          length_center_look = case_when(where_looking == "center" ~ how_long_looking_area))
   
   
 #   
@@ -487,16 +514,25 @@ mean_latency_refixation <- kbh_data_center %>%
 
 mean_fixation_dur <- kbh_w_items %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  ungroup()%>%
-  group_by(recording_name, subject_id, trial_number, media_name) %>%
-  mutate(where_looking_group_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number) %>%
+  mutate(trackloss_group_id = data.table::rleid(trackloss)) %>%
+  group_by(trackloss_group_id, recording_name, trial_number) %>%
+  mutate(num_consec_trackloss_rows = n()) %>%
+  ungroup() %>%
+  filter(trackloss == FALSE | (trackloss == TRUE & num_consec_trackloss_rows >= 2)) %>%
+  group_by(recording_name, trial_number) %>% 
+  mutate(looking_stretch_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, looking_stretch_id) %>%
+  #filter to fixations of at least 12 rows or ~ 200 ms
+  filter(n() >= 12) %>%
   filter(target == TRUE) %>%
-  group_by(recording_name, trial_number, media_name, where_looking_group_id) %>%
+  group_by(recording_name, trial_number, media_name, looking_stretch_id) %>%
   summarise(length_of_looks = n()) %>%
   mutate(length_of_looks = length_of_looks*(1000/60)) %>%
   group_by(recording_name, trial_number, media_name) %>%
   summarise(duration_of_look = mean(length_of_looks, na.rm = T)) %>%
   ungroup()
+
 
 
 #When you have time make some of the calculations by hand to make sure the duration is correct.
@@ -511,12 +547,13 @@ mean_fixation_dur <- kbh_w_items %>%
 
 #Get average looking to target and looking to distractor for each 220-ms time bin (the reference paper used 10-ms time bins, but their eyetracker sampled every 2ms and ours only did ever 16-17 ms)
 
-copy_data <- kbh_w_items %>%
+divergence_point <- kbh_w_items %>%
   filter(noun_onset>= -2000 & noun_onset <= 3000)%>%
-  mutate(timestamp_zero_interest_period = noun_onset - 360,
-         trial_unique = paste0(recording_name, "_", trial_number, "_", media_name)) %>%
+  #make timestamp that is offset by the time it takes to initiate a look, related to the noun onset
+  mutate(timestamp_zero_interest_period = noun_onset - 360) %>%
   ungroup()%>%
   group_by(recording_name, trial_number, media_name, age_months) %>%
+  #Need to align timestamps for each trial, so make the one closest to 0 equal zero and then add the eyetracker frame rate for each row
   mutate(new_noun_onset = case_when(abs(noun_onset) == min(abs(noun_onset)) ~ 0)) %>% 
   select(recording_name, trial_number, recording_timestamp, trial_from_zero, noun_onset, new_noun_onset, target, distractor, trackloss, age_months) %>% 
   mutate(parallel_timestamp = (row_number() - which(new_noun_onset == 0))*(1000/60),
@@ -531,75 +568,114 @@ copy_data <- kbh_w_items %>%
                                age_months >= 21 & age_months < 31 ~ "21-30",
                                age_months >= 31 & age_months < 51 ~ "31-48"))
 
-copy_dat_fig1 <- copy_data %>%
+divergence_plot_data <- divergence_point %>%
   group_by(recording_name, aoi, parallel_timestamp, age_group) %>%
   summarise(mean_fixation = mean(value))
 
 #This takes a little while to run because of the bootstrapping
-base_plot <- ggplot(copy_dat_fig1, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
+divergence_plot <- ggplot(divergence_plot_data, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
   geom_vline(xintercept=0, linetype="dashed", colour="gray28") +
   stat_summary(fun.data=mean_cl_boot, aes(fill=aoi),
                geom="ribbon", alpha=.2, linetype="blank") +
   stat_summary(fun=mean, geom="path", 
                aes(group=aoi, linetype=aoi), size=.7) + facet_wrap(~age_group)
 
-copy_dat_stat <- copy_data %>%
-  filter(parallel_timestamp >= -1000 & parallel_timestamp <= 2500)
+divergence_point_stat <- divergence_point %>%
+  #reduce the time span for calculating stats since the bootstrapping takes a while.
+  filter(parallel_timestamp >= -500 & parallel_timestamp <= 2500)
 
 #Apply statistical test to each time point
-copy_p_table <- copy_dat_stat %>%
+divergence_p_table <- divergence_point_stat %>%
   # select only rows in the dataframe where a fixation occurred
   filter(value == 1) %>%
   # label fixations that were on the target as 1 and as 0 otherwise,
   mutate(looking_to_target = ifelse(aoi == "target", 1, 0)) %>%
-  # we want to test for each timepoint
-  group_by(parallel_timestamp) %>%
+  # we want to test for each timepoint at each age group
+  group_by(parallel_timestamp, age_group) %>%
   # apply logistic regression and extract z-values
   summarise(z = summary(lme4::glmer(looking_to_target ~ 1 +
   (1|recording_name), family="binomial",
   control=lme4::glmerControl(calc.derivs=FALSE)))$coefficients[1,3]) %>%
   # add p-values
-  mutate(p = pnorm(-abs(z))*2)
+  mutate(p = pnorm(-abs(z))*2) 
 
 # Set alpha level and calculate Bonferroni correction
 alpha           <- 0.05
-N_tests         <- length(unique(copy_dat_stat$parallel_timestamp))
+N_tests         <- length(unique(divergence_point_stat$parallel_timestamp))
 alpha_corrected <- alpha/N_tests
 
 # Find the earliest timepoint with a significant uncorrected p-value
-(uncorr <- copy_p_table %>%
+(uncorr <- divergence_p_table %>%
+  group_by(age_group) %>%
   # extract positive z-scores ("target advantage") and significant p-values
   filter(z > 0, p < alpha) %>% 
   # extract the earliest significant p-value and its timepoint 
   slice(1))
 
 # Find the earliest timepoint that survives the Bonferroni correction
-(bnf <- copy_p_table %>%
+(bnf <- divergence_p_table %>%
+  group_by(age_group) %>%
   filter(z > 0, p < alpha_corrected) %>% 
   slice(1))
 
 # Find the earliest timepoint after FDR control
-(fdr <- copy_p_table %>%
+(fdr <- divergence_p_table %>%
+  group_by(age_group) %>%
   # apply FDR control from `stats` package
   mutate(p_fdr = stats::p.adjust(p, method = "BY", n = length(p))) %>%
   filter(z > 0, p_fdr < alpha) %>%
   slice(1))
 
-plot_points <- tibble(correction = c("Uncorrected", "Bonferroni", "FDR"), 
+plot_points <- tibble(correction = c(rep("Uncorrected", 3), rep("Bonferroni", 3), rep("FDR", 3)),
+                      age_group = rep(c("14-20", "21-30", "31-48"),3),
                       parallel_timestamp = c(uncorr$parallel_timestamp, bnf$parallel_timestamp, fdr$parallel_timestamp),
                       mean_fixation = .5,
                       aoi = "target")
 
-overall_plot <- ggplot(copy_dat_fig1, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
+overall_divergence_plot <- ggplot(divergence_plot_data, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
   geom_vline(xintercept=0, linetype="dashed", colour="gray28") +
   stat_summary(fun.data=mean_cl_boot, aes(fill=aoi),
                geom="ribbon", alpha=.2, linetype="blank") +
   stat_summary(fun=mean, geom="path", 
                aes(group=aoi, linetype=aoi), size=.7) +
+  facet_wrap(~age_group) +
   geom_point(data = plot_points, color = "black", aes(shape = plot_points$correction))
 
 
+#Apply statistical test to each time point for each kid
+divergence_p_table_by_subject <- divergence_point_stat %>%
+  # select only rows in the dataframe where a fixation occurred
+  filter(value == 1) %>%
+  # label fixations that were on the target as 1 and as 0 otherwise,
+  mutate(looking_to_target = ifelse(aoi == "target", 1, 0)) %>%
+  # we want to test for each timepoint for each subject
+  group_by(parallel_timestamp, recording_name) %>%
+  # apply logistic regression and extract z-values
+  summarise(z = summary(glm(looking_to_target ~ 1, family="binomial"))$coefficients[1,3]) %>%
+  # add p-values
+  mutate(p = pnorm(-abs(z))*2) 
 
+# Find the earliest timepoint with a significant uncorrected p-value
+(uncorr_by_subject <- divergence_p_table_by_subject %>%
+  group_by(recording_name) %>%
+  # extract positive z-scores ("target advantage") and significant p-values
+  filter(z > 0, p < alpha) %>% 
+  # extract the earliest significant p-value and its timepoint 
+  slice(1))
+
+# Find the earliest timepoint that survives the Bonferroni correction ----------- Looks like when you split by subject, there isn't enough data for the corrected p values to be significant, so statistically, individual children don't have a divergence point after correcting
+(bnf_by_subject <- divergence_p_table_by_subject %>%
+  group_by(recording_name) %>%
+  filter(z > 0, p < alpha_corrected) %>% 
+  slice(1))
+
+# Find the earliest timepoint after FDR control
+(fdr_by_subject <- divergence_p_table_by_subject %>%
+  group_by(recording_name) %>%
+  # apply FDR control from `stats` package
+  mutate(p_fdr = stats::p.adjust(p, method = "BY", n = length(p))) %>%
+  filter(z > 0, p_fdr < alpha) %>%
+  slice(1))
 
 #10. Pupil dilation
 #Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
@@ -607,6 +683,7 @@ overall_plot <- ggplot(copy_dat_fig1, aes(x=parallel_timestamp, y=mean_fixation,
 
 
 pupil_dilation <- kbh_w_items %>%
+  ungroup() %>%
   filter(noun_onset>= -200 & noun_onset <= 500)%>%
 mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
                                 TRUE ~ "post_onset"))%>% 
@@ -660,8 +737,8 @@ first_look_duration <- kbh_w_items %>%
   ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
   group_by(recording_name, trial_number) %>% 
-  mutate(targets_in_a_row = data.table::rleid(target)) %>%
-  group_by(recording_name, trial_number, targets_in_a_row) %>%
+  mutate(looking_stretch_id = data.table::rleid(target)) %>%
+  group_by(recording_name, trial_number, looking_stretch_id) %>%
   mutate(row = row_number()) %>% 
   mutate(where_looking = case_when(target == TRUE ~ "target",
                                    distractor == TRUE ~ "distractor",
@@ -670,7 +747,7 @@ first_look_duration <- kbh_w_items %>%
   mutate(first_look_dur = max(row_number())*(1000/60)) %>% 
   filter(first_look_dur >= 200) %>%
   group_by(recording_name, trial_number) %>%
-  filter(targets_in_a_row == min(targets_in_a_row)) %>% 
+  filter(looking_stretch_id == min(looking_stretch_id)) %>% 
   ungroup() %>%
   distinct(recording_name, trial_number, media_name, first_look_dur)
  
@@ -680,43 +757,23 @@ first_look_duration <- kbh_w_items %>%
 
 ```{r merging newly created DVs to the original dataset}
 
-#clean variables to be merged
-
-#1)
-prop_looking_c<- prop_looking %>%
-  select(recording_name, subject_id, trial_number, media_name, prop_looking)
-
-#2)
-fixations_total_c<- fixations_total %>%
-  select(recording_name, subject_id, trial_number, media_name, looking_to_target)
-
-#3)
-RT_c<- RT %>%
-select(recording_name, subject_id, trial_number, media_name, latency_to_switch)  
-
-#4)
-number_of_switches_c<- number_of_switches %>%
-select(recording_name, subject_id, trial_number, media_name, total_aoi_switches)  
-
-#5)
-first_look_duration_c<- first_look_duration %>%
- select(recording_name, subject_id, trial_number, media_name, first_look_dur)   
-
-
-
-data_new_dvs<- kbh_data_clean %>%
-  select(recording_name, media_name, subject_id, trial_number, age_months, exp_to_target_lang)
-
-  data_new_dvs<- full_join(data_new_dvs, prop_looking_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
-  
-   data_new_dvs<- full_join(data_new_dvs, fixations_total_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
-   
-    data_new_dvs<- full_join(data_new_dvs, RT_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
-    
-     data_new_dvs<- full_join(data_new_dvs, number_of_switches_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
-     
-     data_new_dvs<- full_join(data_new_dvs, first_look_duration_c, by=(c("recording_name", "subject_id", "trial_number", "media_name")))
-
+data_new_dvs <- kbh_w_items %>%
+  distinct(recording_name, media_name, age_months, exp_to_target_lang , target_word, yoked_pair) %>%
+  left_join(prop_looking %>% select(-subject_id, -samples_target, -samples_distractor)) %>%
+  #double check if kids see the same word more than once... if so, this item will be ducplicated in the dataset
+  left_join(prop_looking_diff) %>%
+  left_join(sampling_fixations_total %>% select(-subject_id)) %>%
+  left_join(fixations_total %>% select(-subject_id)) %>%
+  left_join(prop_shifts_distractor_initial) %>%
+  left_join(prop_shifts_target_initial) %>%
+  left_join(RT %>% ungroup() %>% select(recording_name, trial_number, latency_to_switch)) %>%
+  left_join(number_of_switches %>% select(-subject_id)) %>%
+  left_join(mean_fixation_dur) %>%
+  left_join(peak_dilation %>% select(-contains("max"))) %>%
+  left_join(mean_dilation %>% select(-mean_pupil_baseline, -mean_pupil_post_onset)) %>%
+  left_join(peak_pupil_latency) %>%
+  left_join(first_look_duration) %>%
+  ungroup()
 
 ```
 
@@ -728,12 +785,12 @@ data_new_dvs<- kbh_data_clean %>%
 
 #PEARSON CORRELATION
 for_correlation<- data_new_dvs %>%
-  ungroup()%>%
-  select(age_months, exp_to_target_lang, prop_looking, looking_to_target, latency_to_switch, total_aoi_switches, first_look_dur)
+  select(where(is.numeric)) %>%
+  select(-trial_number)
 
 kbh_correlation <- cor(x=for_correlation, use="complete.obs")
 
-coorelation_for_p<- rcorr(as.matrix(for_correlation))
+correlation_for_p<- rcorr(as.matrix(for_correlation))
 
 corrplot(kbh_correlation)
 
