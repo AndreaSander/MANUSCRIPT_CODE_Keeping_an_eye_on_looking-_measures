@@ -1,3 +1,10 @@
-"0","library(eyetrackingR)
-"
-"2","Warning: package ‘eyetrackingR’ was built under R version 4.3.3"
+"0","library(here)"
+"0","library(dplyr)"
+"0","library(stringr)"
+"0","library(Hmisc)"
+"0","library(corrplot)"
+"0","library(zoo)"
+"0","library(tidyverse)"
+"0","library(eyetrackingR)"
+"0",""
+"0","load(here(""archival_KBH_anonimyzed/arch_final.Rda""))"

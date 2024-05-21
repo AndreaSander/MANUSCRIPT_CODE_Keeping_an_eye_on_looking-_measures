@@ -790,9 +790,27 @@ for_correlation<- data_new_dvs %>%
 
 kbh_correlation <- cor(x=for_correlation, use="complete.obs")
 
-correlation_for_p<- rcorr(as.matrix(for_correlation))
+kbh_correlation_2<- rcorr(as.matrix(for_correlation))
 
-corrplot(kbh_correlation)
+# Extract p-values
+p_values <- kbh_correlation_2$P
+
+# Flatten the matrix to adjust p-values
+p_values_flat <- as.vector(p_values)
+
+# Adjust p-values using Bonferroni correction
+p_values_adj <- p.adjust(p_values_flat, method = "bonferroni")
+
+# Convert the adjusted p-values back to a matrix
+p_values_adj_matrix <- matrix(p_values_adj, ncol = ncol(for_correlation))
+
+test<- as.data.frame(p_values_adj_matrix)
+
+#plotting the correlation
+corrplot(kbh_correlation, method='square')
+
+corrplot(kbh_correlation, method='pie')
+
 
 
 
