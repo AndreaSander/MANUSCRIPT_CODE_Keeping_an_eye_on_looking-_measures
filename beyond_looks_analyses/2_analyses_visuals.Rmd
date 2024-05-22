@@ -291,19 +291,15 @@ kbh_w_items <- kbh_w_items %>%
 
 prop_looking <- kbh_w_items %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  group_by(recording_name, subject_id, trial_number, media_name, age_months, exp_to_target_lang)%>%
+  group_by(recording_name, subject_id, #trial_number, media_name, 
+           age_months, exp_to_target_lang)%>%
   summarise(samples_target=sum(target, na.rm = T),
             samples_distractor=sum(distractor, na.rm = T))%>%
   mutate(prop_looking= samples_target/(samples_target + samples_distractor)) %>%
   ungroup()
 
 #2. Proportion looking difference 
-#Now it is done but there is something strange happening with compmix items--to check.
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
-
-#Question if two studies have the same item pair (e.g. dog-apple), should they still be grouped as the same yoked pair? They might have had different carrier sentences but, the words are the same.
-#Question: should it be absolute difference or true difference?
-
 
 prop_looking_diff <- kbh_w_items %>%
   ungroup()%>%
@@ -319,7 +315,10 @@ prop_looking_diff <- kbh_w_items %>%
   pivot_wider(names_from = "word_type", values_from = "prop_looking") %>%
   filter(!is.na(target_word) & !is.na(distractor_word)) %>%
   mutate(prop_looking_diff = target_word - distractor_word) %>%
-  select(recording_name, target_word = word, prop_looking_diff)
+  select(recording_name, target_word = word, prop_looking_diff) %>%
+  ungroup() %>%  
+  group_by(recording_name) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
+  summarise(mean(prop_looking_diff))
 
   
 #3. Number of fixations
@@ -344,7 +343,8 @@ sampling_fixations_total <- kbh_w_items %>%
   group_by(recording_name, trial_number, looking_stretch_id) %>%
   mutate(row = row_number(), 
          multi_of_twelve = case_when(row %% 12 == 0 & target == TRUE ~ "fixation")) %>% 
-  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  group_by(#trial_number, media_name keep this to calculate variable by trial instead of by subject.
+    recording_name, subject_id) %>%
   summarise(number_sampling_fixations = sum(multi_of_twelve == "fixation", na.rm = T)) %>%
   ungroup()
 
@@ -365,7 +365,8 @@ fixations_total <- kbh_w_items %>%
   filter(n() >= 12) %>%
   #filter to target fixations
   filter(target == TRUE) %>%
-  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  group_by(#trial_number, media_name,
+           recording_name, subject_id) %>%
   summarise(number_fixations = length(unique(looking_stretch_id))) %>%
   ungroup()
   
@@ -407,7 +408,8 @@ RT <- kbh_w_items %>%
   filter(noun_onset >= 360 & noun_onset <= 1800) %>% #Keeping the shorter window to be consistent with Fernald
     #Grouping and summarizing to get by subject by trial flagging of whether there was switching or not.
   filter(initial_look == "distractor") %>%
-  group_by(recording_name, subject_id, trial_number, media_name, initial_look, target) %>%
+  group_by(#trial_number, media_name, #run this to get calculation by trial instead of by subject
+    recording_name, subject_id,initial_look, target) %>%
   slice_head() %>%
   filter(target == TRUE) %>%
   mutate(latency_to_switch = noun_onset - 360) 
@@ -433,7 +435,8 @@ number_of_switches <- kbh_w_items %>%
   group_by(recording_name, trial_number) %>%
   mutate(AOI_switches = case_when(lag(where_looking) == "target" & where_looking == "distractor" ~ 1,
                             lag(where_looking) == "distractor" & where_looking == "target" ~ 1)) %>%
-  group_by(recording_name, subject_id, trial_number, media_name) %>%
+  group_by(#trial_number, media_name,
+           recording_name, subject_id) %>%
   summarise(total_aoi_switches = sum(AOI_switches, na.rm = T)) %>%
   ungroup()
   
@@ -529,7 +532,8 @@ mean_fixation_dur <- kbh_w_items %>%
   group_by(recording_name, trial_number, media_name, looking_stretch_id) %>%
   summarise(length_of_looks = n()) %>%
   mutate(length_of_looks = length_of_looks*(1000/60)) %>%
-  group_by(recording_name, trial_number, media_name) %>%
+  group_by(#trial_number, media_name, #run this to make it by trial 
+    recording_name) %>%
   summarise(duration_of_look = mean(length_of_looks, na.rm = T)) %>%
   ungroup()
 
@@ -699,7 +703,8 @@ mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline
 #Peak dilation
 peak_dilation <- pupil_dilation %>%
   ungroup()%>%
-  group_by(recording_name, trial_number, media_name, pupil_period) %>%
+  group_by(#trial_number, media_name,
+    recording_name, pupil_period) %>%
   summarise(peak_pupil = max(two_pupil_mean)) %>%
   pivot_wider(names_from = pupil_period, values_from ="peak_pupil")%>%
   mutate(peak_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
@@ -710,7 +715,8 @@ peak_dilation <- pupil_dilation %>%
 #Mean dilation
 mean_dilation <- pupil_dilation %>%
   ungroup()%>%
-  group_by(recording_name, trial_number, media_name, pupil_period) %>%
+  group_by(#trial_number, media_name,
+    recording_name, pupil_period) %>%
   summarise(mean_pupil = mean(two_pupil_mean, na.rm = T)) %>%
   pivot_wider(names_from = pupil_period, values_from ="mean_pupil")%>%
   mutate(mean_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
@@ -723,10 +729,12 @@ mean_dilation <- pupil_dilation %>%
 #peak latency
 peak_pupil_latency <- pupil_dilation %>%
   ungroup()%>%
-  group_by(recording_name, media_name, pupil_period, trial_number) %>%
+  group_by(#trial_number, media_name,
+    recording_name,pupil_period) %>%
   slice(which.max(two_pupil_mean)) %>%
   select(recording_name, media_name, pupil_period, peak_time_stamp = recording_timestamp) %>%
-  group_by(recording_name, trial_number, media_name) %>%
+  group_by(#trial_number, media_name,
+    recording_name) %>%
   summarise(peak_pupil_latency = diff(peak_time_stamp))
 
 
@@ -746,7 +754,8 @@ first_look_duration <- kbh_w_items %>%
   filter(where_looking == "target") %>%
   mutate(first_look_dur = max(row_number())*(1000/60)) %>% 
   filter(first_look_dur >= 200) %>%
-  group_by(recording_name, trial_number) %>%
+  group_by(#trial_number,
+    recording_name) %>%
   filter(looking_stretch_id == min(looking_stretch_id)) %>% 
   ungroup() %>%
   distinct(recording_name, trial_number, media_name, first_look_dur)
