@@ -711,7 +711,8 @@ p_values_adj <- p.adjust(p_values_flat, method = "bonferroni")
 # Convert the adjusted p-values back to a matrix
 p_values_adj_matrix <- matrix(p_values_adj, ncol = ncol(for_correlation))
 
-test<- as.data.frame(p_values_adj_matrix)
+test<- as.data.frame(p_values_adj_matrix, options(scipen = 999, digits = 4)) 
+  
 
 #plotting the correlation
 corrplot(kbh_correlation)
@@ -741,6 +742,8 @@ proportion_looking ~ age + experience + age*experience + (1|subject) + (1|item)
 ```{r}
 
 library(lmerTest)
+library(DHARMa)
+library(performance)
 
 #Prop Looking Models
 prop_looking_simple <- lmer(prop_looking ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
@@ -850,7 +853,15 @@ summary(correct_shift_simple)
 
 correct_shift_interaction <- glmer(correct_shift ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
                             data = data_new_dvs_by_trial, family = "binomial")
-summary(correct_shift_interaction)
+summary(correct_shift_interaction, first_look_duration_simple, )
+
+
+
+## Contrasting models performance
+
+compare_performance(correct_shift_simple , peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
+                    mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple)
+
 
 
 
