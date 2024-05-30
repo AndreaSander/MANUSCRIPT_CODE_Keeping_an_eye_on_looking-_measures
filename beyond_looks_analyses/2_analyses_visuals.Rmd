@@ -18,6 +18,8 @@ library(corrplot)
 library(zoo)
 library(tidyverse)
 library(eyetrackingR)
+library(psych)
+library(QuantPsyc)
 
 load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
 ```
@@ -674,6 +676,7 @@ data_new_dvs_by_subject <- analysis_dataset %>%
   # commenting out for now until we verify how to do this one left_join(sampling_fixations_total %>% select(-subject_id)) %>%
   left_join(fixations_total_by_subject) %>%
   left_join(prop_shifts_distractor_initial_by_subject) %>%
+  left_join(prop_shifts_target_initial_by_subject) %>%
   left_join(RT_by_subject) %>%
   left_join(number_of_switches_by_subject) %>%
   left_join(mean_fixation_dur_by_subject) %>%
@@ -681,7 +684,9 @@ data_new_dvs_by_subject <- analysis_dataset %>%
   left_join(mean_dilation_by_subject) %>%
   left_join(peak_pupil_latency_by_subject) %>%
   left_join(first_look_duration_by_subject) %>%
-  ungroup()
+  ungroup()%>%
+  mutate(exp_to_target_lang_centred = (exp_to_target_lang/100)-.5,
+         age_months_centred = age_months - 25)
 
 ```
 
@@ -732,6 +737,40 @@ corrplot(kbh_correlation_s)
 
 
 ```
+
+
+#Factor analysis
+```{r}
+
+for_factor_analysis<- for_correlation %>%
+  select(-c(age_months, exp_to_target_lang)) %>%
+  as.matrix()
+
+for_factor_analysis_noshift <- for_correlation %>%
+  select(-c(prop_shift_distractor_initial, prop_shift_target_initial, age_months, exp_to_target_lang)) %>%
+  as.matrix()
+
+#We are sticking with ss loads above 1 so that leaves us with 2 factors.
+psych::fac(for_factor_analysis, nfactors = 2)
+
+#Mention in a write up that without the only distractor trials the factors are quite similar so we are quite confident it is not an artifact.
+psych::fac(for_factor_analysis_noshift, nfactors = 10)
+
+
+#Proportion looking tends to be good because it considers both distractor initial and target initial trials. But there are other variables like number of fixations that might be good but just for certain types of trials e.g. target initial.
+
+#Pupil is cool as a measure of surprise if they are looking at the wrong thing (distractor initial) but not during target initial trials.
+
+#We want to ultimately give reccomendations. Is there a measure that's more robust, best for manipulations, if it only works for a type of trial, like target initial you are halving your data, so is that best? We might run reliability measures by child by trial.
+
+```
+
+
+
+
+
+
+
 # Models 
 
 Make the following models for each of our variables as the outcome
@@ -746,121 +785,136 @@ library(DHARMa)
 library(performance)
 
 #Prop Looking Models
-prop_looking_simple <- lmer(prop_looking ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+prop_looking_simple <- lm (prop_looking ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(prop_looking_simple)
 
-prop_looking_interaction <- lmer(prop_looking ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+prop_looking_interaction <- lm (prop_looking ~ age_months_centred*exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(prop_looking_interaction)
 
 
 #Prop Looking Diff Models
-prop_looking_diff_simple <- lmer(prop_looking_diff ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+prop_looking_diff_simple <- lm (prop_looking_diff ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(prop_looking_diff_simple)
 
-prop_looking_diff_interaction <- lmer(prop_looking_diff ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+prop_looking_diff_interaction <- lm (prop_looking_diff ~ age_months_centred*exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(prop_looking_diff_interaction)
 
 
 #Number fixations Models
-number_fixations_simple <- lmer(number_fixations ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+number_fixations_simple <- lm (number_fixations ~ age_months_centred + exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(number_fixations_simple)
 
-number_fixations_interaction <- lmer(number_fixations ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+number_fixations_interaction <- lm (number_fixations ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(number_fixations_interaction)
 
 
 #Latency to switch Models
-latency_to_switch_simple <- lmer(latency_to_switch ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+latency_to_switch_simple <- lm (mean_RT ~ age_months_centred + exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(latency_to_switch_simple)
 
-latency_to_switch_interaction <- lmer(latency_to_switch ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+latency_to_switch_interaction <- lm (mean_RT ~ age_months_centred*exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(latency_to_switch_interaction)
 
 
 #Number of AOI switches Models
-aoi_switches_simple <- lmer(total_aoi_switches ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+aoi_switches_simple <- lm (total_aoi_switches ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(aoi_switches_simple)
 
-aoi_switches_interaction <- lmer(total_aoi_switches ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+aoi_switches_interaction <- lm (total_aoi_switches ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(aoi_switches_interaction)
 
+aoi_switches_interaction2 <- lm (total_aoi_switches ~ age_months_centred*exp_to_target_lang, 
+                            data = data_new_dvs_by_subject)
+
+interactions::interact_plot(aoi_switches_interaction2, pred= exp_to_target_lang, modx=age_months_centred, plot.points = T)
 
 #Mean fixation duration Models
-mean_fixation_dur_simple <- lmer(duration_of_look ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+mean_fixation_dur_simple <- lm (duration_of_look ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(mean_fixation_dur_simple)
 
-mean_fixation_dur_interaction <- lmer(duration_of_look ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+mean_fixation_dur_interaction <- lm (duration_of_look ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(mean_fixation_dur_interaction)
 
 
+
+
 #Peak pupil size Models
-peak_pupil_simple <- lmer(peak_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+peak_pupil_simple <- lm (peak_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(peak_pupil_simple)
 
-peak_pupil_interaction <- lmer(peak_pupil_size_difference ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+peak_pupil_interaction <- lm (peak_pupil_size_difference ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(peak_pupil_interaction)
 
 
 #Mean pupil size Models
-mean_pupil_simple <- lmer(mean_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+mean_pupil_simple <- lm (mean_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred,
+                            data = data_new_dvs_by_subject)
 summary(mean_pupil_simple)
 
-mean_pupil_interaction <- lmer(mean_pupil_size_difference ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+mean_pupil_interaction <- lm (mean_pupil_size_difference ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(mean_pupil_interaction)
 
 
 #Peak pupil latency Models
-peak_pupil_latency_simple <- lmer(peak_pupil_latency ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+peak_pupil_latency_simple <- lm (peak_pupil_latency ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(peak_pupil_latency_simple)
 
-peak_pupil_latency_interaction <- lmer(peak_pupil_latency ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+peak_pupil_latency_interaction <- lm (peak_pupil_latency ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(peak_pupil_latency_interaction)
 
 
 #First look duration Models
-first_look_duration_simple <- lmer(first_look_dur ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+first_look_duration_simple <- lm (first_look_dur ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(first_look_duration_simple)
 
-first_look_duration_interaction <- lmer(first_look_dur ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial)
+first_look_duration_interaction <- lm (first_look_dur ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(first_look_duration_interaction)
 
 
-#Correct shift to target models - BINOMIAL
+#Correct shift to target models
 
-correct_shift_simple <- glmer(correct_shift ~ age_months_centred + exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial, family = "binomial")
+correct_shift_simple <- lm(prop_shift_distractor_initial ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 summary(correct_shift_simple)
 
-correct_shift_interaction <- glmer(correct_shift ~ age_months_centred*exp_to_target_lang_centred + (1|recording_name) + (1|yoked_pair), 
-                            data = data_new_dvs_by_trial, family = "binomial")
-summary(correct_shift_interaction, first_look_duration_simple, )
+correct_shift_interaction <- lm(prop_shift_distractor_initial ~ age_months_centred*exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
 
+summary(correct_shift_interaction)
+
+
+target_stay_simple <-lm(prop_shift_target_initial ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
+summary(target_stay_simple)
+
+target_stay_interaction<- lm(prop_shift_target_initial ~ age_months_centred * exp_to_target_lang_centred, 
+                            data = data_new_dvs_by_subject)
+summary(target_stay_interaction)
 
 
 ## Contrasting models performance
 
 compare_performance(correct_shift_simple , peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
-                    mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple)
+                    mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple, target_stay_simple, correct_shift_simple)
 
 
 
