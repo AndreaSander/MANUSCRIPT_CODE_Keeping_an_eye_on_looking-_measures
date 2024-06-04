@@ -1183,11 +1183,119 @@ summary(target_stay_interaction)
 
 ## Contrasting models performance
 
-compare_performance(correct_shift_simple , peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
+compare_performance(correct_shift_simple, peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
                     mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple, target_stay_simple, correct_shift_simple)
 
 
 
+
+
+```
+
+
+## Models with split data
+
+```{r}
+
+#Models in nested dataframe
+
+model_data_nested <- data_new_dvs_by_subject_split %>%
+  group_by(initial_look) %>%
+  nest() 
+
+models_nested <- model_data_nested %>%
+  mutate(
+    #Prop looking
+    prop_looking_simple_split = map(data, ~lm(prop_looking ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #Prop looking diff
+         prop_looking_diff_simple_split = map(data, ~lm (prop_looking_diff ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #Number fixations
+    number_fixations_simple_split = map(data, ~lm (number_fixations ~ age_months_centred + exp_to_target_lang_centred,
+                            data = .x)),
+    #Latency to switch
+    # latency_to_switch_simple_split = map(data, ~ lm(mean_RT ~ age_months_centred + exp_to_target_lang_centred,
+    #                         data = .x)),
+    #Number AOI switches
+    aoi_switches_simple_split = map(data, ~ lm(total_aoi_switches ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #Mean fixation duration
+    mean_fixation_dur_simple_split = map(data, ~lm(duration_of_look ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #Peak pupil size
+    peak_pupil_simple_split = map(data, ~lm(peak_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred,
+                            data = .x)),
+    #Mean pupil size
+    mean_pupil_simple_split = map(data, ~lm(mean_pupil_size_difference ~ age_months_centred + exp_to_target_lang_centred,
+                            data = .x)),
+    #Peak pupil latency
+    peak_pupil_latency_simple_split = map(data, ~lm(peak_pupil_latency ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #First look duration
+    first_look_duration_simple_split = map(data, ~lm(first_look_dur ~ age_months_centred + exp_to_target_lang_centred, 
+                            data = .x)),
+    #Correct shift for distractor initial 
+    # correct_shift_simple_split = map(data, ~lm(prop_shift_distractor_initial ~ age_months_centred + exp_to_target_lang_centred, 
+    #                         data = .x)),
+    # #Staying on target for target initial
+    # target_stay_simple_split = map(data, ~lm(prop_shift_target_initial ~ age_months_centred + exp_to_target_lang_centred, 
+    #                         data = .x))
+         )
+
+
+## Contrasting models performance
+
+compare_performance(correct_shift_simple , peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
+                    mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple, target_stay_simple, correct_shift_simple)
+
+
+models_nested_long <- models_nested %>%
+  pivot_longer(contains("split"), names_to = "model_name", values_to = "model_object") %>%
+  group_by(initial_look) %>%
+  nest() 
+
+#Target initial
+compare_performance(models_nested_long$data[[1]]$model_object)
+#Distractor initial
+compare_performance(models_nested_long$data[[2]]$model_object)
+#Neither initial
+compare_performance(models_nested_long$data[[3]]$model_object)
+
+
+#Model summaries
+
+models_nested_long %>%
+  unnest() %>%
+  mutate(model_summary = map(model_object, ~summary(.x))) %>%
+  pull(model_summary)
+
+```
+#Check plot
+```{r}
+
+#Let's plot raw data split by initial look to make sure models make sense
+
+data_for_check_plot <- analysis_dataset %>%
+  filter(noun_onset >= 360 & noun_onset <= 3000) %>%
+  make_eyetrackingr_data(., 
+                               participant_column = "recording_name",
+                               trial_column = "trial_number",
+                               time_column = "noun_onset",
+                               trackloss_column = "trackloss",
+                               aoi_columns = c('target','distractor'),
+                               treat_non_aoi_looks_as_missing = TRUE)
+  
+  
+data_for_check_plot %>%
+  make_time_sequence_data(., time_bin_size = 100, aois = NULL,
+  predictor_columns = c("initial_look"), other_dv_columns = NULL, summarize_by = c("recording_name", "trial_number")) %>%
+  ggplot(aes(x = TimeBin, y = Prop, color = AOI)) +
+  geom_jitter(alpha = .1, height = .025) +
+  geom_smooth() +
+  facet_wrap(~initial_look)
+
+#The looking time sequence for target-initial trials seems to have a shallow drop in looking to target over the course of the interest period, as opposed to a sharp rise for distractor-initial trials. This might help explain some of the model differences in significance after splitting by initial look location.
 
 
 ```

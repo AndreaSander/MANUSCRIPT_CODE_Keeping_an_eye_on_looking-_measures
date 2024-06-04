@@ -1,6 +1,0 @@
-"0","load(here(""archival_KBH_anonimyzed/anonymized_eye_data/eye_data_cogmisp.Rda""))"
-"0",""
-"0","eye_data_cogmisp <- eye_data_cogmisp %>%"
-"0","  select(all_of(keepcols))"
-"2","select: dropped 72 variables (ExportDate, StudioVersionRec, RecordingDuration, RecordingResolution, PresentationSequence, …)
-"
