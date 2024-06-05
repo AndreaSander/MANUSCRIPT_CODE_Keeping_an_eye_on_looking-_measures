@@ -691,7 +691,7 @@ prop_looking_diff_by_item_split <- analysis_dataset %>%
 
 prop_looking_diff_by_subject_split <- prop_looking_diff_by_item_split %>%  
   group_by(recording_name, initial_look) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
-  summarise(prop_looking_diff = mean(prop_looking_diff)) %>%
+  summarise(prop_looking_diff = mean(prop_looking_diff)) %>%     
   ungroup() #only 165 kids have data for this variable, because they didn't have enough data/trials included with both words of each yoked pair
 
 
