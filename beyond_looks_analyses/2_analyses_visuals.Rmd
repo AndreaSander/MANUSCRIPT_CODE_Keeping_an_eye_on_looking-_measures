@@ -991,10 +991,21 @@ test<- as.data.frame(p_values_adj_matrix, options(scipen = 999, digits = 4))
 colnames(kbh_correlation) <- c("Age in months", "Exposure to target language", "Proportion looking", "Proportion looking difference", "Total number of fixations", "Proportion of trials shifting to target", "Proportion of trials staying on target", "Mean reaction time", "Total number of AOI switches", "Mean duration of looks", "Peak pupil size difference", "Mean pupil size difference", "Time to peak pupil", "Mean duration of first look")
 rownames(kbh_correlation) <- c("Age in months", "Exposure to target language", "Proportion looking", "Proportion looking difference", "Total number of fixations", "Proportion of trials shifting to target", "Proportion of trials staying on target", "Mean reaction time", "Total number of AOI switches", "Mean duration of looks", "Peak pupil size difference", "Mean pupil size difference", "Time to peak pupil", "Mean duration of first look")
 
+#Reorder variables so that they apear in my costum order
+
+custom_order<- c("Age in months", "Exposure to target language", "Proportion looking", "Proportion looking difference","Mean reaction time", "Total number of fixations","Peak pupil size difference",  "Mean pupil size difference", "Time to peak pupil", "Proportion of trials shifting to target", "Proportion of trials staying on target","Mean duration of looks", "Mean duration of first look", "Total number of AOI switches")
+
+reordered_kbh_correlation<- kbh_correlation[custom_order, custom_order]
+
+#Create path to save correlation plot as PNG
+png(filename= here("archival_KBH_anonimyzed/corrleation.png"),width = 800, height = 800 )
+
 #Plot:
-corrplot(kbh_correlation, type = 'lower', order = 'hclust', tl.col = 'black',
+corrplot(reordered_kbh_correlation, type = 'lower', tl.col = 'black',
          cl.ratio = 0.2, tl.srt = 45, col = COL2('PiYG', 10))
 
+#Closing the PNG graphics device.
+dev.off()
 
 #Same graph but with pie charts
 corrplot(kbh_correlation, method='pie')
