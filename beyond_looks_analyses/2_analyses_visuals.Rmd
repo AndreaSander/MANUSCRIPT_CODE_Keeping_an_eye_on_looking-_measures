@@ -951,6 +951,17 @@ data_new_dvs_by_subject_split <- analysis_dataset %>%
   ungroup()%>%
   mutate(exp_to_target_lang_centred = (exp_to_target_lang/100)-.5,
          age_months_centred = age_months - 25)
+
+#How many trials in each split of the data?
+
+analysis_dataset_split %>%
+  unnest() %>%
+  group_by(initial_look, recording_name) %>%
+    summarise(num_trials = length(unique(trial_number))) %>%
+  group_by(initial_look) %>%
+    summarise(avg_num_trials = mean(num_trials))
+
+
 ```
 
 
