@@ -22,6 +22,7 @@ library(QuantPsyc)
 library(lmerTest)
 library(DHARMa)
 library(performance)
+library(psych)
 library(tidyverse)
 
 load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
@@ -969,6 +970,22 @@ analysis_dataset_split %>%
     summarise(num_trials = length(unique(trial_number))) %>%
   group_by(initial_look) %>%
     summarise(avg_num_trials = mean(num_trials))
+
+
+```
+
+
+```{r ICC between DVs}
+
+
+#need to only have the numeric variables for the ICC to be calculated
+for_icc <- data_new_dvs_by_subject %>%
+  dplyr::select(where(is.numeric)) %>%
+   dplyr::select(-c(age_months, exp_to_target_lang, exp_to_target_lang_centred, age_months_centred))
+
+ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
+
+
 
 
 ```
