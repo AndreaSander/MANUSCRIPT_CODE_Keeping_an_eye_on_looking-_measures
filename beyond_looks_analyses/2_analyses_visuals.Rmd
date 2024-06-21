@@ -928,6 +928,15 @@ data_new_dvs_by_subject <- analysis_dataset %>%
   mutate(exp_to_target_lang_centred = (exp_to_target_lang/100)-.5,
          age_months_centred = age_months - 25)
 
+
+#How many trials in average when we collapse by subject?
+
+data_new_dvs_by_trial %>%
+  group_by(recording_name) %>%
+    summarise(num_trials = length(unique(trial_number))) %>%
+    summarise(avg_num_trials = mean(num_trials))
+
+
 ```
 
 #Add new split variables to one dataset
