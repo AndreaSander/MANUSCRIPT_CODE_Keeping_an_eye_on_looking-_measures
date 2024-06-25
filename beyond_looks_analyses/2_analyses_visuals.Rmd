@@ -911,7 +911,7 @@ data_new_dvs_by_trial <- analysis_dataset %>%
                                    correct_shift == F ~ 0))
 
 data_new_dvs_by_subject <- analysis_dataset %>%
-  distinct(recording_name, age_months, exp_to_target_lang) %>%
+  distinct(recording_name, age_months, exp_to_target_lang, fre_exp, eng_exp) %>% #Added french and english exposure to be able to calculate balance for some analyses.
   left_join(prop_looking_by_subject) %>%
   #double check if kids see the same word more than once... if so, this item will be ducplicated in the dataset
   left_join(prop_looking_diff_by_subject) %>%
@@ -1234,6 +1234,23 @@ summary(target_stay_interaction)
 
 compare_performance(correct_shift_simple, peak_pupil_latency_simple, mean_pupil_simple, peak_pupil_simple,
                     mean_fixation_dur_simple , aoi_switches_simple, latency_to_switch_simple, prop_looking_diff_simple, number_fixations_simple, prop_looking_simple, target_stay_simple, correct_shift_simple)
+
+
+
+
+
+```
+
+
+
+Models with exposure balance instead of exposure to target language
+
+```{r}
+for_balance_models <- data_new_dvs_by_subject %>%
+  mutate(balance_score= abs(fre_exp - eng_exp))
+
+
+
 
 
 
