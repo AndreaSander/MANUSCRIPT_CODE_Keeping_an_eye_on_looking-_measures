@@ -244,9 +244,9 @@ eye_data_arch <- clean_names(eye_data_arch) %>%
   mutate(studio_project_name = str_replace(studio_project_name, "_", "-")) #change Mix names to have hyphen instead of underscore so they merge correctly later
 #save(eye_data_arch, file = here("R Analyses/Eye_data/eye_data_arch2.Rda"))
 
-#Check potential issues with the merge
-setdiff(Demo_arch$recording_name, eye_data_arch$recording_name) # all the rows that are different correspond to data that has already been identified as missing from tobii
-setdiff(eye_data_arch$recording_name, Demo_arch$recording_name) # 0 so all good!
+# #Check potential issues with the merge
+# setdiff(Demo_arch$recording_name, eye_data_arch$recording_name) # all the rows that are different correspond to data that has already been identified as missing from tobii
+# setdiff(eye_data_arch$recording_name, Demo_arch$recording_name) # 0 so all good!
 
 
 #Remove attention getters and blank media name rows
@@ -270,8 +270,8 @@ AOI<- read_excel(here("archival_KBH_anonimyzed/AOI_maker.xlsx")) %>%
 
 #Check potential issues with the merging
 
-setdiff(AOI$media_name, arch_comp_data$media_name) #0 no differences
-setdiff(arch_comp_data$media_name, AOI$media_name)# The differences are just from test trials from the "learn" experiment, for which we are only interested in the learning phase. So no problem.
+# setdiff(AOI$media_name, arch_comp_data$media_name) #0 no differences
+# setdiff(arch_comp_data$media_name, AOI$media_name)# The differences are just from test trials from the "learn" experiment, for which we are only interested in the learning phase. So no problem.
 
 arch_aoi_data <- left_join(arch_comp_data, AOI, by = c("studio_project_name", "trial_number", "media_name", "studio_test_name")) #All the rows were kept. No issues.
 
@@ -313,7 +313,7 @@ arch_final <- arch_final %>%
   filter(seq_fr_exclude=="false")%>%
   filter(seq_eng_exclude=="false") #18 participants excluded and 340 trials
 
-#keeps only relevant trials. For this paper we only want the control or training trials, not the experimental condition
+#The first dataframe keeps only the control or training trials, not the experimental condition
 
 
 arch_final<- arch_final %>%
@@ -324,5 +324,20 @@ arch_final<- arch_final %>%
 #7 participants excluded and 1531 trials
 
 save(arch_final, file = here("archival_KBH_anonimyzed/arch_final.Rda"))
+
+
+#The second dataframe keeps only the experimental trials.
+`%notin%` <- Negate(`%in%`)
+
+arch_final_experimental<- arch_final %>%
+  filter(trial_type %notin% c("normal", "filler", "same")) %>%
+  filter(!is.na(media_name)) %>% 
+  filter(is.na(key_press_event)) %>% 
+  filter(is.na(studio_event))
+
+
+save(arch_final, file = here("archival_KBH_anonimyzed/arch_final_experimental.Rda"))
+
+
 
 ```
