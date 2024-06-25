@@ -316,14 +316,14 @@ arch_final <- arch_final %>%
 #The first dataframe keeps only the control or training trials, not the experimental condition
 
 
-arch_final<- arch_final %>%
+arch_final_fillers<- arch_final %>%
   filter(trial_type %in% c("normal", "filler", "same")) %>%
   filter(!is.na(media_name)) %>% 
   filter(is.na(key_press_event)) %>% 
   filter(is.na(studio_event))
 #7 participants excluded and 1531 trials
 
-save(arch_final, file = here("archival_KBH_anonimyzed/arch_final.Rda"))
+save(arch_final_fillers, file = here("archival_KBH_anonimyzed/arch_final.Rda"))
 
 
 #The second dataframe keeps only the experimental trials.
@@ -336,7 +336,7 @@ arch_final_experimental<- arch_final %>%
   filter(is.na(studio_event))
 
 
-save(arch_final, file = here("archival_KBH_anonimyzed/arch_final_experimental.Rda"))
+save(arch_final_experimental, file = here("archival_KBH_anonimyzed/arch_final_experimental.Rda"))
 
 
 

@@ -11,13 +11,14 @@ library(tidyverse)
 library(here)
 
 load(here("archival_KBH_anonimyzed/arch_final.Rda"))
+load(here("archival_KBH_anonimyzed/arch_final_experimental.Rda"))
 
 ```
 
 
-```{r clean data to be used in analyses}
+```{r clean filler data to be used in analyses}
 
-kbh_data_clean <- arch_final%>%
+kbh_data_clean <- arch_final_filler%>%
   group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
   mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
   group_by(studio_project_name)%>%
@@ -256,3 +257,58 @@ kbh_w_items <- kbh_w_items %>% ungroup()
 save(kbh_w_items, file = here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
 
 ```
+
+
+
+```{r clean experimental data to be used in analyses}
+
+kbh_experimental_clean <- arch_final_experimental%>%
+  group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
+  mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
+  group_by(studio_project_name)%>%
+  mutate(noun_onset = case_when(studio_project_name=="CompMix-36"~trial_from_zero-3000, #Substracting noun onset to normalize
+                                studio_project_name=="LearnMix-36"~trial_from_zero-4500,
+                                studio_project_name=="Mix-20"~trial_from_zero-5400,
+                                studio_project_name=="Mix-14"~trial_from_zero-5400,
+                                studio_project_name=="CogMisp-24"~trial_from_zero-1500))%>%
+  ungroup()%>%
+  rename(target_side=target, distractor_side=distractor,
+         gaze_point_x= gaze_point_x_adc_spx, 
+         gaze_point_y = gaze_point_y_adc_spx)%>%
+  mutate(trackloss = case_when(gaze_point_x<0 ~ TRUE,
+                               gaze_point_x> 1920 ~ TRUE,
+                               gaze_point_y<0 ~ TRUE,
+                               gaze_point_y > 1080 ~ TRUE,
+                               is.na(gaze_point_x) ~ TRUE,
+                               is.na(gaze_point_y) ~ TRUE,
+                               is.na(validity_left) ~ TRUE,
+                               is.na(validity_right) ~ TRUE,
+                               validity_left > 1 ~ TRUE,
+                               validity_right > 1 ~ TRUE,
+                               TRUE~ FALSE)) %>% #MAKE VISUALIZATIONS ABOUT TRACKLOSS FOR SANITY CHECK
+  mutate(target = case_when(gaze_point_x >= target_x_min&gaze_point_x <= target_x_max&gaze_point_y >= target_y_min&gaze_point_y <= target_y_max~TRUE, 
+                            TRUE~FALSE)) %>%
+  mutate(distractor = case_when(gaze_point_x >= distractor_x_min&gaze_point_x <= distractor_x_max&gaze_point_y >= distractor_y_min&gaze_point_y <= distractor_y_max~TRUE, 
+                                 TRUE ~ FALSE))
+
+#Create trial language column to describe the language in which the babies were tested
+kbh_experimental_clean <- kbh_experimental_clean %>%
+  ungroup()%>%
+  group_by(studio_test_name, eng_exp, fre_exp)%>%
+  mutate(trial_lang = case_when(str_detect(studio_test_name,"E")~ "english",
+                                str_detect(studio_test_name, "F")~ "french")) %>%
+  mutate(exp_to_target_lang = case_when(trial_lang == "english" ~ eng_exp,
+                                        trial_lang == "french" ~ fre_exp)) %>%
+  #Make trackloss rows NA for target and distractor, since we can't say for certain where the gaze is
+  mutate(target = case_when(trackloss == TRUE ~ NA,
+                            TRUE ~ target),
+         distractor = case_when(trackloss == TRUE ~ NA,
+                                TRUE ~ distractor))
+
+
+#Add a column with the yoked pairs information---yoking info taken from lab server
+
+
+
+```
+
