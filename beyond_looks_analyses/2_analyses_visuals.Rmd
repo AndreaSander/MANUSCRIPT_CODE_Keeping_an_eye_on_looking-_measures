@@ -987,6 +987,11 @@ for_icc <- data_new_dvs_by_subject %>%
 ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
 
 
+# ICC for split vriables
+
+
+
+
 
 
 ```
@@ -1248,6 +1253,137 @@ Models with exposure balance instead of exposure to target language
 ```{r}
 for_balance_models <- data_new_dvs_by_subject %>%
   mutate(balance_score= abs(fre_exp - eng_exp))
+
+
+#Prop Looking Models
+prop_looking_sbalance <- lm(prop_looking ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(prop_looking_sbalance)
+
+prop_looking_ibalance <- lm (prop_looking ~ age_months_centred*balance_score,
+                            data = for_balance_models)
+summary(prop_looking_ibalance)
+
+
+#Prop Looking Diff Models
+prop_looking_diff_sbalance <- lm (prop_looking_diff ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(prop_looking_diff_sbalance)
+
+prop_looking_diff_ibalance <- lm (prop_looking_diff ~ age_months_centred*balance_score,
+                            data = for_balance_models)
+summary(prop_looking_diff_ibalance)
+
+
+#Number fixations Models
+number_fixations_sbalance <- lm (number_fixations ~ age_months_centred + balance_score,
+                            data = for_balance_models)
+summary(number_fixations_sbalance)
+
+number_fixations_ibalance <- lm (number_fixations ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(number_fixations_ibalance)
+
+
+#Latency to switch Models
+latency_to_switch_sbalance <- lm (mean_RT ~ age_months_centred + balance_score,
+                            data = for_balance_models)
+summary(latency_to_switch_sbalance)
+
+latency_to_switch_ibalance <- lm (mean_RT ~ age_months_centred*balance_score,
+                            data = for_balance_models)
+summary(latency_to_switch_ibalance)
+
+
+#Number of AOI switches Models
+aoi_switches_sbalance <- lm (total_aoi_switches ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(aoi_switches_sbalance)
+
+aoi_switches_ibalance <- lm (total_aoi_switches ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(aoi_switches_ibalance)
+
+
+#Mean fixation duration Models
+mean_fixation_dur_sbalance <- lm (duration_of_look ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(mean_fixation_dur_sbalance)
+
+mean_fixation_dur_ibalance <- lm (duration_of_look ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(mean_fixation_dur_ibalance)
+
+
+
+
+#Peak pupil size Models
+peak_pupil_sbalance <- lm (peak_pupil_size_difference ~ age_months_centred + balance_score,
+                            data = for_balance_models)
+summary(peak_pupil_sbalance)
+
+peak_pupil_ibalance <- lm (peak_pupil_size_difference ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(peak_pupil_ibalance)
+
+
+#Mean pupil size Models
+mean_pupil_sbalance <- lm (mean_pupil_size_difference ~ age_months_centred + balance_score,
+                            data = for_balance_models)
+summary(mean_pupil_sbalance)
+
+mean_pupil_ibalance <- lm (mean_pupil_size_difference ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(mean_pupil_ibalance)
+
+
+#Peak pupil latency Models
+peak_pupil_latency_sbalance <- lm (peak_pupil_latency ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(peak_pupil_latency_sbalance)
+
+peak_pupil_latency_ibalance <- lm (peak_pupil_latency ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(peak_pupil_latency_ibalance)
+
+
+#First look duration Models
+first_look_duration_sbalance <- lm (first_look_dur ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(first_look_duration_sbalance)
+
+first_look_duration_ibalance <- lm (first_look_dur ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+summary(first_look_duration_sbalance)
+
+
+#Correct shift to target models
+
+correct_shift_sbalance <- lm(prop_shift_distractor_initial ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(correct_shift_sbalance)
+
+correct_shift_ibalance <- lm(prop_shift_distractor_initial ~ age_months_centred*balance_score, 
+                            data = for_balance_models)
+
+summary(correct_shift_ibalance)
+
+
+target_stay_sbalance <-lm(prop_shift_target_initial ~ age_months_centred + balance_score, 
+                            data = for_balance_models)
+summary(target_stay_sbalance)
+
+target_stay_ibalance<- lm(prop_shift_target_initial ~ age_months_centred * balance_score, 
+                            data = for_balance_models)
+summary(target_stay_ibalance)
+
+
+## Contrasting models performance
+
+compare_performance(correct_shift_sbalance, peak_pupil_latency_sbalance, mean_pupil_sbalance, peak_pupil_sbalance,
+                    mean_fixation_dur_sbalance , aoi_switches_sbalance, latency_to_switch_sbalance, prop_looking_diff_sbalance, number_fixations_sbalance, prop_looking_sbalance, target_stay_sbalance, correct_shift_sbalance)
+
+
 
 
 
