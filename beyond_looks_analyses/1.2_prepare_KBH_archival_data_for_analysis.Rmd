@@ -262,7 +262,7 @@ save(kbh_w_items, file = here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
 
 ```{r clean experimental data to be used in analyses}
 
-kbh_experimental_clean <- arch_final_experimental%>%
+kbh_experimental_clean <- arch_final_experimental %>%
   group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
   mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
   group_by(studio_project_name)%>%
@@ -308,6 +308,125 @@ kbh_experimental_clean <- kbh_experimental_clean %>%
 
 #Add a column with the yoked pairs information---yoking info taken from lab server
 
+`%notin%` <- Negate(`%in%`)
+
+kbh_experimental_items<- kbh_experimental_clean %>%
+  filter(!grepl("Teelo|Walem", media_name)) %>% # Filtering the learn experiment which used non-words for the experimental condition.
+mutate(yoked_pair = case_when(
+  grepl("Monkey|Sheep", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"monkey-sheep",
+  grepl("Bunny|Dog", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"bunny-dog",
+  grepl("Cow|Froggy", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"cow-froggy",
+  grepl("Fish|Duck", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"fish-duck",
+  
+  grepl("Fish|Duck", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"poisson-canard",
+  grepl("Monkey|Sheep", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"mouton-singe",
+  grepl("Bunny|Dog", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"chien-lapin",
+  grepl("Cow|Froggy", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~"grenouille-vache",
+  
+  grepl("banM|girM", media_name) & studio_project_name== "CogMisp-24"  ~"banana-giraffe",
+  grepl("monM|butM", media_name) & studio_project_name=="CogMisp-24" ~"monkey-butterfly",
+  grepl("winM|mouM", media_name) & studio_project_name== "CogMisp-24" ~"window-mouth",
+  grepl("pizM|tabM", media_name) & studio_project_name== "CogMisp-24" ~"pizza-table",
+  grepl("choM|bowM", media_name) & studio_project_name== "CogMisp-24" ~"chocolate-bowl",
+  grepl("fooM|cooM", media_name) & studio_project_name== "CogMisp-24"~"cookie-foot",
+
+
+  grepl("Toothbrush|Apple", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"toothbrush-apple",
+  grepl("Ear|Spoon", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"ear-spoon",
+  grepl("Mouth|Door", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"mouth-door",
+  grepl("Bird|Hand", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"bird-hand",
+  grepl("Dog|Book", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"dog-book",
+  grepl("Cookie|Foot", media_name) & studio_project_name %in% c("Mix-20","Mix-14") ~"cookie-foot",
+
+  grepl("Brosse|Pomme", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"pomme-brosse a dents",
+  grepl("Oreille|Cuillere", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"oreille-cuillere",
+  grepl("Bouche|Porte", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"bouche-porte",
+  grepl("Hand|Main", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"oisseau-main",
+  grepl("Chien|Livre", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"chien-livre",
+  grepl("Biscuit|Pied", media_name) & studio_project_name %in% c("Mix-20","Mix-14") ~"biscuit-pied",
+
+  TRUE~"OTHER"
+  )
+)
+
+
+
+#Adding a column with word tested information
+kbh_experimental_items<- kbh_experimental_items %>%
+  mutate(target_word= case_when(
+  grepl("monM", media_name) ~"monkey",
+  grepl("butM", media_name) ~"butterfly",
+  grepl("Door", media_name) & grepl("Mix", studio_project_name) & grepl("Eng|ENG", media_name) ~"door",
+  grepl("banM", media_name) ~"banana",
+  grepl("winM", media_name) ~"window",
+  grepl("pizM", media_name) ~"pizza",
+  grepl("fooM", media_name) ~"foot",
+  grepl("bowM", media_name) ~"bowl",
+  grepl("choM", media_name) ~"chocolate",
+  grepl("girM", media_name) ~"giraffe",
+  grepl("tabM", media_name) ~"table",
+  
+  
+  grepl("Oreille", media_name)  & grepl("Mix", studio_project_name) ~"oreille",
+  grepl("Cuillere", media_name)  & grepl("Mix", studio_project_name) ~"cuillere",
+  grepl("Chien", media_name)  & grepl("Mix", studio_project_name) ~"chien",
+  grepl("Biscuit", media_name)  & grepl("Mix", studio_project_name) ~"biscuit",
+  grepl("Bouche", media_name)  & grepl("Mix", studio_project_name)  ~"bouche",
+  grepl("Livre", media_name) & grepl("Mix", studio_project_name) ~"livre",
+  grepl("Pied", media_name)  & grepl("Mix", studio_project_name) ~"pied",
+  grepl("Oisseau", media_name)  & grepl("Mix", studio_project_name) ~"oisseau",
+  grepl("Main", media_name)  & grepl("Mix", studio_project_name) ~"main",
+  grepl("Porte", media_name)  & grepl("Mix", studio_project_name) ~"porte",
+  grepl("Brosse", media_name)  & grepl("Mix", studio_project_name) ~"brosse a dents",
+  grepl("Pomme", media_name)  & grepl("Mix", studio_project_name) ~"pomme",
+  grepl("Poisson", media_name)  & grepl("Mix", studio_project_name) ~"poisson",
+  grepl("Lapin", media_name)  & grepl("Mix", studio_project_name) ~"lapin",
+
+   grepl("Fish_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "poisson",
+   grepl("Duck_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "canard",
+   grepl("Monkey_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "singe",
+   grepl("Sheep_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "mouton",
+   grepl("Dog_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "chien",
+   grepl("Froggy_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "grenouille",
+   grepl("Cow_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "vache",
+    grepl("Bunny_Fr", media_name) & studio_project_name== "CompMix-36" & grepl("F", studio_test_name) ~ "lapin",
+  
+   grepl("Fish", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "fish",
+   grepl("Duck", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "duck",
+   grepl("Monkey", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "monkey",
+   grepl("Sheep", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "sheep",
+   grepl("Dog", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "dog",
+   grepl("Froggy", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "froggy",
+   grepl("Cow", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~ "cow",
+  
+    grepl("Ear", media_name) & grepl("Mix", studio_project_name) ~"ear",
+  grepl("Spoon", media_name)  & grepl("Mix", studio_project_name) ~"spoon",
+  grepl("Dog", media_name)  & grepl("Mix", studio_project_name) ~"dog",
+  grepl("Cookie", media_name)  & grepl("Mix", studio_project_name)~"cookie",
+  grepl("cooM", media_name) ~"cookie",  
+  grepl("Mouth", media_name)  & grepl("Mix", studio_project_name)~"mouth",
+  grepl("mouM", media_name) ~"mouth",
+  grepl("Book", media_name)  & grepl("Mix", studio_project_name) ~"book",
+  grepl("Foot", media_name)  & grepl("Mix", studio_project_name) ~"foot",
+   grepl("fooM", media_name) ~"foot",
+  grepl("Bird", media_name)  & grepl("Mix", studio_project_name) ~"bird",
+  grepl("Hand", media_name)  & grepl("Mix", studio_project_name) ~"hand",
+  grepl("Toothbrush", media_name)   & grepl("Mix", studio_project_name) ~"toothbrush",
+  grepl("Apple", media_name)  & grepl("Mix", studio_project_name) ~"apple",
+  grepl("Fish", media_name)  & grepl("Mix", studio_project_name) ~"fish",
+  grepl("Bunny", media_name)  & grepl("Mix", studio_project_name) ~"bunny",
+  
+  TRUE~"OTHER"
+  ),
+distractor_word = str_remove(yoked_pair, target_word),
+distractor_word = str_remove(distractor_word, "-")
+)
+
+kbh_experimental_items <- kbh_experimental_items %>% ungroup()
+
+
+
+save(kbh_experimental_items, file = here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
 
 
 ```

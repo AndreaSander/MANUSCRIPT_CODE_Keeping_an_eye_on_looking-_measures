@@ -26,6 +26,8 @@ library(psych)
 library(tidyverse)
 
 load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
+load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
+
 
 ```
 
@@ -989,9 +991,13 @@ ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
 
 # ICC for split vriables
 
+ICC_data_nested <- data_new_dvs_by_subject_split %>%
+  group_by(initial_look, ) %>%
+  nest() %>%
+    dplyr::select(where(is.numeric)) %>%
+   dplyr::select(-c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))
 
-
-
+ICC(mapICC_data_nested, missing = FALSE, lmer = TRUE, alpha=.05)
 
 
 ```
