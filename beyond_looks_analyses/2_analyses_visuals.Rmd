@@ -9,6 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Set variables for which dataset to analyze
+```{r}
+
+analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+
+```
+
+
 ```{r call in libraries and clean data, include=FALSE}
 library(here)
 library(dplyr)
@@ -25,9 +33,15 @@ library(performance)
 library(psych)
 library(tidyverse)
 
-load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
-load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
-
+if (analysis_type == "non-experimental") {
+  load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
+  analysis_data <- kbh_w_items
+  rm(kbh_w_items)
+} else if (analysis_type == "experimental") {
+  load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
+  analysis_data <- kbh_experimental_items
+  rm(kbh_experimental_items)
+}
 
 ```
 
@@ -36,7 +50,7 @@ load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
 ####### Only keep kids with at least 50% of interest period looking AND who have at least 25% of trials
 ## Total trials for each study is usually 12 (CogMisp, Mix), except CompMix, CompLearn with 16, LearnMix with 6
 
-trial_cutoff <- kbh_w_items %>%
+trial_cutoff <- analysis_data %>%
   group_by(recording_name) %>%
   distinct(studio_project_name, trial_number) %>%
   count(studio_project_name, recording_name) %>%
@@ -45,9 +59,9 @@ trial_cutoff <- kbh_w_items %>%
   mutate(max_trials_study = max(n_trials_subject)) %>%
   distinct(studio_project_name, max_trials_study)
 
-n_subjects_original <- n_distinct(kbh_w_items$recording_name)
+n_subjects_original <- n_distinct(analysis_data$recording_name)
   
-trackloss_cleaned <- kbh_w_items %>%
+trackloss_cleaned <- analysis_data %>%
   #for each kid in each trial,
   group_by(recording_name, trial_number) %>%
   #filter to interest period
@@ -66,7 +80,7 @@ trackloss_cleaned <- kbh_w_items %>%
 
 n_subjects_after_trackloss_exclusion <- n_distinct(trackloss_cleaned$recording_name)
   
-analysis_dataset <- kbh_w_items %>%
+analysis_dataset <- analysis_data %>%
   right_join(trackloss_cleaned) %>%
   left_join(trial_cutoff) %>%
   mutate(trial_n_cutoff = round(max_trials_study*.25, digits = 0)) %>%
@@ -503,9 +517,11 @@ alpha_corrected <- alpha/N_tests
 
 plot_points <- tibble(correction = c(rep("Uncorrected", 3), rep("Bonferroni", 3), rep("FDR", 3)),
                       age_group = rep(c("14-20", "21-30", "31-48"),3),
-                      parallel_timestamp = c(uncorr$parallel_timestamp, bnf$parallel_timestamp, fdr$parallel_timestamp),
                       mean_fixation = .5,
-                      aoi = "target")
+                      aoi = "target")  %>%
+  left_join(uncorr %>% dplyr::select(parallel_timestamp, age_group) %>% mutate(correction = "Uncorrected") %>%
+  bind_rows(bnf %>% dplyr::select(parallel_timestamp, age_group) %>% mutate(correction = "Bonferroni")) %>%
+  bind_rows(fdr%>% dplyr::select(parallel_timestamp, age_group) %>% mutate(correction = "FDR")))
 
 overall_divergence_plot <- ggplot(divergence_plot_data, aes(x=parallel_timestamp, y=mean_fixation, colour=aoi)) +
   geom_vline(xintercept=0, linetype="dashed", colour="gray28") +
@@ -659,8 +675,8 @@ first_look_duration_by_subject <- first_look_duration_by_trial %>%
 
 #Split dataset by initial look location
 analysis_dataset_split <- analysis_dataset %>%
-  group_by(initial_look) %>%
-  nest()
+  group_split(initial_look) %>%
+   setNames(unique(analysis_dataset$initial_look))
 
 #1. Proportion looking to target
 
@@ -967,8 +983,7 @@ data_new_dvs_by_subject_split <- analysis_dataset %>%
 
 #How many trials in each split of the data?
 
-analysis_dataset_split %>%
-  unnest() %>%
+analysis_dataset %>%
   group_by(initial_look, recording_name) %>%
     summarise(num_trials = length(unique(trial_number))) %>%
   group_by(initial_look) %>%
@@ -991,14 +1006,14 @@ ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
 
 # ICC for split vriables
 
-ICC_data_nested <- data_new_dvs_by_subject_split %>%
-  group_by(initial_look, ) %>%
-  nest() %>%
-    dplyr::select(where(is.numeric)) %>%
-   dplyr::select(-c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))
-
-ICC(mapICC_data_nested, missing = FALSE, lmer = TRUE, alpha=.05)
-
+data_new_dvs_by_subject_split %>%
+  group_split(initial_look) %>%
+   setNames(unique(data_new_dvs_by_subject_split$initial_look)) %>%
+  purrr::map(~dplyr::select(., where(is.numeric))) %>%
+  purrr::map(~dplyr::select(., -c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))) %>%
+  purrr::map(~ICC(., missing = FALSE, lmer = TRUE, alpha=.05))
+  
+#the order for the above is Overall, Target, Distractor, Neither
 
 ```
 
@@ -1009,11 +1024,13 @@ ICC(mapICC_data_nested, missing = FALSE, lmer = TRUE, alpha=.05)
 
 #PEARSON CORRELATION
 for_correlation_with_age_lang_centred<- data_new_dvs_by_subject %>%
-  dplyr::select(where(is.numeric)) 
+  dplyr::select(where(is.numeric)) %>%
+  dplyr::select(-fre_exp, -eng_exp)
 
 for_correlation_no_age_lang_centred<- data_new_dvs_by_subject %>%
   dplyr::select(where(is.numeric)) %>%
-  dplyr::select(-contains("centred"))
+  dplyr::select(-contains("centred"))  %>%
+  dplyr::select(-fre_exp, -eng_exp)
 
 kbh_correlation <- cor(x=for_correlation_no_age_lang_centred, use="pairwise.complete.obs")
 
@@ -1047,7 +1064,7 @@ custom_order<- c("Age in months", "Exposure to target language", "Proportion loo
 reordered_kbh_correlation<- kbh_correlation[custom_order, custom_order]
 
 #Create path to save correlation plot as PNG
-png(filename= here("archival_KBH_anonimyzed/corrleation.png"),width = 800, height = 800 )
+png(filename= here(paste0("archival_KBH_anonimyzed/corrleation_", analysis_type, ".png"), width = 800, height = 800 ))
 
 #Plot:
 corrplot(reordered_kbh_correlation, type = 'lower', tl.col = 'black',
@@ -1062,10 +1079,8 @@ corrplot(kbh_correlation, method='pie')
 
 
 #SPEARMAN CORRELATION
-
-kbh_correlation_s <- cor(x=for_correlation, use="pairwise.complete.obs", method = "spearman")
-
-
+# to see the plot without the age variable, change x= to for_correlation_no_age_lang_centred
+kbh_correlation_s <- cor(x=for_correlation_with_age_lang_centred, use="pairwise.complete.obs", method = "spearman")
 
 corrplot(kbh_correlation_s)
 
