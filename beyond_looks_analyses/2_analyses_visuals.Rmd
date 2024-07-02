@@ -1064,7 +1064,7 @@ custom_order<- c("Age in months", "Exposure to target language", "Proportion loo
 reordered_kbh_correlation<- kbh_correlation[custom_order, custom_order]
 
 #Create path to save correlation plot as PNG
-png(filename= here(paste0("archival_KBH_anonimyzed/corrleation_", analysis_type, ".png"), width = 800, height = 800 ))
+png(filename= here("archival_KBH_anonimyzed/corrleation_experimental.png"), width = 800, height = 800 )
 
 #Plot:
 corrplot(reordered_kbh_correlation, type = 'lower', tl.col = 'black',
@@ -1100,7 +1100,7 @@ for_factor_analysis_noshift <- for_correlation_with_age_lang_centred %>%
   as.matrix()
 
 #We are sticking with ss loads above 1 so that leaves us with 2 factors.
-psych::fac(for_factor_analysis, nfactors = 2)
+psych::fac(for_factor_analysis, nfactors = 3)
 
 #Mention in a write up that without the only distractor trials the factors are quite similar so we are quite confident it is not an artifact.
 psych::fac(for_factor_analysis_noshift, nfactors = 10)
