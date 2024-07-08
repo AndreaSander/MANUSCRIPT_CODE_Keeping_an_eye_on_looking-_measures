@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Set variables for which dataset to analyze
 ```{r}
 
-analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+analysis_type <- "non-experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
 
 ```
 
@@ -1100,7 +1100,7 @@ for_factor_analysis_noshift <- for_correlation_with_age_lang_centred %>%
   as.matrix()
 
 #We are sticking with ss loads above 1 so that leaves us with 2 factors.
-psych::fac(for_factor_analysis, nfactors = 3)
+psych::fac(for_factor_analysis, nfactors = 2)
 
 #Mention in a write up that without the only distractor trials the factors are quite similar so we are quite confident it is not an artifact.
 psych::fac(for_factor_analysis_noshift, nfactors = 10)
