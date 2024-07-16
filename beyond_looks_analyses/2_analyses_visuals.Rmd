@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Set variables for which dataset to analyze
 ```{r}
 
-analysis_type <- "non-experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
 
 ```
 
@@ -957,6 +957,16 @@ data_new_dvs_by_trial %>%
     summarise(avg_num_trials = mean(num_trials))
 
 
+#Save datasets (run depending on which dataset is loaded)
+
+#Non-Experimental trials 
+#save(data_new_dvs_by_subject, file= here("ALL_DVs_datasets/kbh_bysubject_nonexperimental.Rda"))
+
+#Experimental trials
+
+#save(data_new_dvs_by_subject, file= here("ALL_DVs_datasets/kbh_bysubject_experimental.Rda"))
+
+
 ```
 
 #Add new split variables to one dataset
@@ -989,6 +999,15 @@ analysis_dataset %>%
   group_by(initial_look) %>%
     summarise(avg_num_trials = mean(num_trials))
 
+
+#Save split datasets (run depending on which dataset is loaded)
+#Non-Experimental trials
+
+#save(data_new_dvs_by_subject_split, file= here("ALL_DVs_datasets/kbh_split_bysubject_nonexperimental.Rda"))
+
+#Experimental trials
+
+#save(data_new_dvs_by_subject_split2, file= here("ALL_DVs_datasets/kbh_split_bysubject_experimental.Rda"))
 
 ```
 
@@ -1494,6 +1513,28 @@ models_nested_long %>%
   pull(model_summary)
 
 ```
+
+
+
+#Merge experimental and non experimental DV matrices to fin differences in effects
+
+```{r}
+load(here("ALL_DVs_datasets/kbh_split_bysubject_nonexperimental.Rda"))
+load(here("ALL_DVs_datasets/kbh_split_bysubject_experimental.Rda"))
+
+
+
+kbh_all_conditions <- left_join(data_new_dvs_by_subject_split, data_new_dvs_by_subject_split2, by="recording_name", relationship = "many-to-many")
+
+```
+
+
+
+
+
+
+
+
 #Check plot
 ```{r}
 
