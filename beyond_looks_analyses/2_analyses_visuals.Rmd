@@ -1015,7 +1015,8 @@ analysis_dataset %>%
 ```{r ICC between DVs}
 
 
-#need to only have the numeric variables for the ICC to be calculated
+#need to only have the numeric variables for the ICC to be calculated ---calculate the ICC by variable and then contrast the variables. Then coehn's D for each variable (an effect size). Calculate an effect for each baby.. take their average performance for exp trials and for filler trials for each variables. Experimental effect is the effect size of the difference between exp and filler. 
+
 for_icc <- data_new_dvs_by_subject %>%
   dplyr::select(where(is.numeric)) %>%
    dplyr::select(-c(age_months, exp_to_target_lang, exp_to_target_lang_centred, age_months_centred))
