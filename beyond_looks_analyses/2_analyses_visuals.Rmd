@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Set variables for which dataset to analyze
 ```{r}
 
-analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+analysis_type <- "non-experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
 
 ```
 
@@ -1015,23 +1015,47 @@ analysis_dataset %>%
 ```{r ICC between DVs}
 
 
-#need to only have the numeric variables for the ICC to be calculated ---calculate the ICC by variable and then contrast the variables. Then coehn's D for each variable (an effect size). Calculate an effect for each baby.. take their average performance for exp trials and for filler trials for each variables. Experimental effect is the effect size of the difference between exp and filler. 
-
-for_icc <- data_new_dvs_by_subject %>%
-  dplyr::select(where(is.numeric)) %>%
-   dplyr::select(-c(age_months, exp_to_target_lang, exp_to_target_lang_centred, age_months_centred))
-
-ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
+#Need to calculate the ICC by variable and then contrast the variables. Then coehn's D for each variable (an effect size--- see Krista's paper code also). Calculate an effect for each baby.. take their average performance for exp trials and for filler trials for each variables. Experimental effect is the effect size of the difference between exp and filler. 
 
 
-# ICC for split vriables
+icc_prop_looking <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, prop_looking)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = prop_looking) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
 
-data_new_dvs_by_subject_split %>%
-  group_split(initial_look) %>%
-   setNames(unique(data_new_dvs_by_subject_split$initial_look)) %>%
-  purrr::map(~dplyr::select(., where(is.numeric))) %>%
-  purrr::map(~dplyr::select(., -c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))) %>%
-  purrr::map(~ICC(., missing = FALSE, lmer = TRUE, alpha=.05))
+icc_aoi_switches <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, total_aoi_switches)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = total_aoi_switches) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+ICC(icc_prop_looking , missing = FALSE, lmer = TRUE, alpha=.05)
+ICC(icc_aoi_switches , missing = FALSE, lmer = TRUE, alpha=.05)
+
+# #Not working because ICC should compare trial by trial the variables in each subject
+# for_icc <- data_new_dvs_by_subject %>%
+#   dplyr::select(where(is.numeric)) %>%
+#    dplyr::select(-c(age_months, exp_to_target_lang, exp_to_target_lang_centred, age_months_centred))
+# 
+# ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
+# 
+# 
+# # ICC for split vriables
+# 
+# data_new_dvs_by_subject_split %>%
+#   group_split(initial_look) %>%
+#    setNames(unique(data_new_dvs_by_subject_split$initial_look)) %>%
+#   purrr::map(~dplyr::select(., where(is.numeric))) %>%
+#   purrr::map(~dplyr::select(., -c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))) %>%
+#   purrr::map(~ICC(., missing = FALSE, lmer = TRUE, alpha=.05))
   
 #the order for the above is Overall, Target, Distractor, Neither
 
