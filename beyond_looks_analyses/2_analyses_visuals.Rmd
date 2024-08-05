@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 999)
+`%notin%` <- negate(`%in%`)
 ```
 
 # Set variables for which dataset to analyze
@@ -133,7 +134,8 @@ prop_looking_by_trial <- analysis_dataset %>%
 prop_looking_by_subject <- prop_looking_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_prop_looking = mean(prop_looking),
-            sd_prop_looking = sd(prop_looking)) %>%
+            sd_prop_looking = sd(prop_looking),
+            n_trials_prop_looking = length(unique(trial_number))) %>%
   ungroup()
 
 #2. Proportion looking difference 
@@ -159,7 +161,8 @@ prop_looking_diff_by_item <- analysis_dataset %>%
 prop_looking_diff_by_subject <- prop_looking_diff_by_item %>%  
   group_by(recording_name) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
   summarise(mean_prop_looking_diff = mean(prop_looking_diff),
-            sd_prop_looking_diff = sd(prop_looking_diff)) %>%
+            sd_prop_looking_diff = sd(prop_looking_diff),
+            n_trials_prop_looking_diff = length(unique(target_word))) %>%
   ungroup() #only 165 kids have data for this variable, because they didn't have enough data/trials included with both words of each yoked pair
 
   
@@ -239,7 +242,8 @@ fixations_total_by_trial <- analysis_dataset %>%
 mean_num_fixations_by_subject <- fixations_total_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_number_fixations = mean(number_fixations),
-            sd_number_fixations = sd(number_fixations)) %>%
+            sd_number_fixations = sd(number_fixations),
+            n_trials_number_fixations = length(unique(trial_number))) %>%
   ungroup()
   
 #4. Correct first shift to target
@@ -266,7 +270,8 @@ prop_shifts_distractor_initial_by_trial <- first_shift_target %>%
 prop_shifts_distractor_initial_by_subject <- prop_shifts_distractor_initial_by_trial %>%
   group_by(recording_name) %>%
     summarise(prop_shift_distractor_initial = sum(correct_shift == TRUE)/n(),
-              sd_prop_shift_distractor_initial = sd(as.numeric(correct_shift))) #some SDs are NA because the child only has one row, and no standard deviation can be calculated from one value
+              sd_prop_shift_distractor_initial = sd(as.numeric(correct_shift)),
+            n_trials_prop_shift_distractor_initial = length(unique(trial_number))) #some SDs are NA because the child only has one row, and no standard deviation can be calculated from one value
   
 prop_shifts_target_initial_by_trial <- first_shift_target %>%
     filter(initial_look == "target") 
@@ -274,7 +279,8 @@ prop_shifts_target_initial_by_trial <- first_shift_target %>%
 prop_shifts_target_initial_by_subject <- prop_shifts_target_initial_by_trial %>%
   group_by(recording_name) %>%
     summarise(mean_prop_shift_target_initial = sum(correct_shift == TRUE)/n(),
-              sd_prop_shift_target_initial = sd(as.numeric(correct_shift))) #some SDs are NA because the child only has one row, and no standard deviation can be calculated from one value
+              sd_prop_shift_target_initial = sd(as.numeric(correct_shift)),
+            n_trials_prop_shift_target_initial = length(unique(trial_number))) #some SDs are NA because the child only has one row, and no standard deviation can be calculated from one value
   
 
 #5. Reaction time
@@ -296,7 +302,8 @@ RT_by_trial <- analysis_dataset %>%
 RT_by_subject <- RT_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_RT = mean(latency_to_switch, na.rm = T),
-            sd_RT = sd(latency_to_switch, na.rm = T)) %>%
+            sd_RT = sd(latency_to_switch, na.rm = T),
+            n_trials_RT = length(unique(trial_number))) %>%
   ungroup()
 
 
@@ -326,7 +333,8 @@ number_of_switches_by_trial <- analysis_dataset %>%
 
 number_of_switches_by_subject <- number_of_switches_by_trial %>%
   group_by(recording_name) %>%
-  summarise(total_aoi_switches = sum(total_aoi_switches, na.rm = T)) %>%
+  summarise(total_aoi_switches = sum(total_aoi_switches, na.rm = T),
+            n_trials_total_aoi_switches = length(unique(trial_number))) %>%
   ungroup()
   
   
@@ -428,7 +436,8 @@ mean_fixation_dur_by_trial <- analysis_dataset %>%
 mean_fixation_dur_by_subject <- mean_fixation_dur_by_trial %>% 
   group_by(recording_name) %>%
   summarise(mean_duration_of_look = mean(duration_of_look, na.rm = T),
-            sd_duration_of_look = sd(duration_of_look, na.rm = T)) %>%
+            sd_duration_of_look = sd(duration_of_look, na.rm = T),
+            n_trials_duration_of_look = length(unique(trial_number))) %>%
   ungroup()
 
 
@@ -611,7 +620,8 @@ peak_dilation_by_trial <- pupil_dilation %>%
 peak_dilation_by_subject <- peak_dilation_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_peak_pupil_size_difference = mean(peak_pupil_size_difference),
-            sd_peak_pupil_size_difference = sd(peak_pupil_size_difference)) %>%
+            sd_peak_pupil_size_difference = sd(peak_pupil_size_difference),
+            n_trials_peak_pupil_size_difference = length(unique(trial_number))) %>%
   ungroup() 
   
 #Mean dilation
@@ -629,7 +639,8 @@ mean_dilation_by_trial <- pupil_dilation %>%
 mean_dilation_by_subject <- mean_dilation_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_mean_pupil_size_difference = mean(mean_pupil_size_difference),
-            sd_mean_pupil_size_difference = sd(mean_pupil_size_difference)) %>%
+            sd_mean_pupil_size_difference = sd(mean_pupil_size_difference),
+            n_trials_mean_pupil_size_difference = length(unique(trial_number))) %>%
   ungroup()
   
 
@@ -647,7 +658,8 @@ peak_pupil_latency_by_trial <- pupil_dilation %>%
 peak_pupil_latency_by_subject <- peak_pupil_latency_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_peak_pupil_latency = mean(peak_pupil_latency),
-            sd_peak_pupil_latencey = sd(peak_pupil_latency))
+            sd_peak_pupil_latency = sd(peak_pupil_latency),
+            n_trials_peak_pupil_latency = length(unique(trial_number)))
 
 
 #11. Duration of first look
@@ -675,7 +687,8 @@ first_look_duration_by_trial <- analysis_dataset %>%
 first_look_duration_by_subject <- first_look_duration_by_trial %>%
   group_by(recording_name) %>%
   summarise(mean_first_look_dur = mean(first_look_dur, na.rm = T),
-            sd_first_look_dur = sd(first_look_dur, na.rm = T)) %>%
+            sd_first_look_dur = sd(first_look_dur, na.rm = T),
+            n_trials_first_look_dur = length(unique(trial_number))) %>%
   ungroup()
  
 
@@ -692,6 +705,33 @@ experimental_means_sds <- read_csv(here("by_subject_means_sds_experimental.csv")
 non_experimental_means_sds <- read_csv(here("by_subject_means_sds_non-experimental.csv"))
 
 #HK note: make data long with column indicating analysis dataset type (experimental versus non), one column for means, one for SDs, then can calculate Cohen's D by row for each variable type. Put both means SDs dataframes into one dataframe.
+
+experimental_means_sds_long <- experimental_means_sds %>%
+  rename(mean_prop_shift_distractor_initial = prop_shift_distractor_initial) %>%
+  pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches")
+
+non_experimental_means_sds_long <- non_experimental_means_sds %>%
+  rename(mean_prop_shift_distractor_initial = prop_shift_distractor_initial) %>%
+ pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("non_experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches")
+
+cohens_ds <- experimental_means_sds_long %>%
+  inner_join(non_experimental_means_sds_long %>% select(recording_name, variable, contains("_mean"), contains("_sd"), contains("_n_trials"))) %>%
+  mutate(pooled_sd = sqrt(((non_experimental_n_trials - 1) * non_experimental_sd^2 + (experimental_n_trials - 1) * experimental_sd^2) / (non_experimental_n_trials + experimental_n_trials - 2)),
+         cohens_d = (non_experimental_mean - experimental_mean) / pooled_sd)
+
+
+#These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
+experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
+#These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
+non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
 
 
 ```
