@@ -14,7 +14,7 @@ options(scipen = 999)
 # Set variables for which dataset to analyze
 ```{r}
 
-analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+analysis_type <- "non-experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
 
 ```
 
@@ -723,10 +723,34 @@ non_experimental_means_sds_long <- non_experimental_means_sds %>%
   filter(variable != "total_aoi_switches")
 
 cohens_ds <- experimental_means_sds_long %>%
-  inner_join(non_experimental_means_sds_long %>% select(recording_name, variable, contains("_mean"), contains("_sd"), contains("_n_trials"))) %>%
+  inner_join(non_experimental_means_sds_long %>% dplyr::select(recording_name, variable, contains("_mean"), contains("_sd"), contains("_n_trials"))) %>%
   mutate(pooled_sd = sqrt(((non_experimental_n_trials - 1) * non_experimental_sd^2 + (experimental_n_trials - 1) * experimental_sd^2) / (non_experimental_n_trials + experimental_n_trials - 2)),
          cohens_d = (non_experimental_mean - experimental_mean) / pooled_sd)
 
+
+ no_nan<- cohens_ds %>%
+filter(if_any(cohens_d, ~ !is.nan(.x))) %>%
+   filter(!cohens_d==-Inf) #ASM note: we need to check why some where -Infinite.
+
+ 
+ d_prop_looking<- no_nan%>% filter(variable=="prop_looking")
+ 
+  d_prop_looking_diff<- no_nan%>% filter(variable=="prop_looking_diff")
+  
+  d_mean_pupil<- no_nan%>% filter(variable=="mean_pupil_size_difference")
+ 
+ ## proportion looking
+ mean(d_prop_looking$cohens_d, na.rm=T) #0.18
+ range(d_prop_looking$cohens_d, na.rm=T) #-1.33 - 1.58
+ 
+ ## proportion looking difference
+  mean(d_prop_looking_diff$cohens_d, na.rm=T) #1.10
+ range(d_prop_looking_diff$cohens_d, na.rm=T) #-6.11 - 92.13
+ 
+  ## mean pupil size difference
+  mean(d_mean_pupil$cohens_d, na.rm=T) #.03
+ range( d_mean_pupil$cohens_d, na.rm=T) # -1.3 - 1.8
+ 
 
 #These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
 experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
@@ -1101,6 +1125,52 @@ icc_prop_looking <- data_new_dvs_by_trial %>%
 ungroup() %>%
   dplyr::select(where(is.numeric))
 
+icc_prop_looking_diff <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, prop_looking_diff)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = prop_looking_diff) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_number_fixations <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, number_fixations)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = number_fixations) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_prop_shift_distractor_initial <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, correct_shift)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = correct_shift) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_prop_shift_target_initial <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, mean_prop_shift_target_initial)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = mean_prop_shift_target_initial) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_mean_RT <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, latency_to_switch)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = latency_to_switch) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
 icc_aoi_switches <- data_new_dvs_by_trial %>%
    dplyr::select(c(recording_name, total_aoi_switches)) %>%
   group_by(recording_name) %>%
@@ -1111,8 +1181,66 @@ ungroup() %>%
   dplyr::select(where(is.numeric))
 
 
-ICC(icc_prop_looking , missing = FALSE, lmer = TRUE, alpha=.05)
-ICC(icc_aoi_switches , missing = FALSE, lmer = TRUE, alpha=.05)
+icc_duration_of_look <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, duration_of_look)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = duration_of_look) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_peak_pupil_size_difference <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, peak_pupil_size_difference)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = peak_pupil_size_difference) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+icc_mean_pupil_size_difference <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, mean_pupil_size_difference)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = mean_pupil_size_difference) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_peak_pupil_latency <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, peak_pupil_latency)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = peak_pupil_latency) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+icc_first_look_dur <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, first_look_dur)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = first_look_dur) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+ICC(icc_prop_looking , missing = FALSE, lmer = TRUE, alpha=.05) #ICC3K 0.59
+ICC(icc_prop_looking_diff , missing = FALSE, lmer = TRUE, alpha=.05) #0.88
+ICC(icc_number_fixations  , missing = FALSE, lmer = TRUE, alpha=.05)#0.68
+ICC(icc_prop_shift_distractor_initial, missing = FALSE, lmer = TRUE, alpha=.05) #0.86
+ICC(icc_prop_shift_target_initial , missing = FALSE, lmer = TRUE, alpha=.05) #1 ??
+ICC(icc_mean_RT , missing = FALSE, lmer = TRUE, alpha=.05) #0.85
+ICC(icc_duration_of_look , missing = FALSE, lmer = TRUE, alpha=.05) #0.73
+ICC(icc_mean_pupil_size_difference , missing = FALSE, lmer = TRUE, alpha=.05) #0.84
+ICC(icc_peak_pupil_size_difference , missing = FALSE, lmer = TRUE, alpha=.05)#0.82
+ICC(icc_peak_pupil_latency , missing = FALSE, lmer = TRUE, alpha=.05)#0.3
+ICC(icc_first_look_dur , missing = FALSE, lmer = TRUE, alpha=.05)#0.76
+
+
 
 # #Not working because ICC should compare trial by trial the variables in each subject
 # for_icc <- data_new_dvs_by_subject %>%
