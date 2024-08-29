@@ -1301,6 +1301,10 @@ colnames(mean_by_study) <- gsub("\\.x$", "_experimental", colnames(mean_by_study
 
 #Then create separate datasets for the each DV to get a mean and a dv by study by condition to be able to calculate cohen's D
 
+#establish a critical value for alfa = 0.05 to later calculate 95% confidence intervals
+
+crit_value<- qnorm(1-((0.05)/(2)))
+
 prop_looking_for_d <- mean_by_study %>%
   dplyr::select(mean_prop_looking_experimental, mean_prop_looking_NONexperimental,
                 recording_name, study) %>%
@@ -1320,12 +1324,19 @@ prop_looking_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd) %>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
 
 #create a mini dataframe to later create a table with all the effects
 prop_looking_d <- prop_looking_for_d %>%
   mutate(variable="prop_looking")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 ########
 
@@ -1348,12 +1359,20 @@ prop_looking_diff_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 prop_looking_diff_d <- prop_looking_diff_for_d %>%
   mutate(variable="prop_looking_diff")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 #################
 num_fixations_for_d <- mean_by_study %>%
@@ -1375,12 +1394,20 @@ num_fixations_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 num_fixations_d <- num_fixations_for_d  %>%
   mutate(variable="number_fixations")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 #########
 
@@ -1403,12 +1430,20 @@ shift_distractor_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 shift_distractor_d <- shift_distractor_for_d %>%
   mutate(variable="prop_shift_distractor_initial")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
  
 ##############
 shift_target_for_d <- mean_by_study %>%
@@ -1430,12 +1465,20 @@ shift_target_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 shift_target_d <- shift_target_for_d%>%
   mutate(variable="prop_shift_target_initial")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
  ##########
 
 RT_for_d <- mean_by_study %>%
@@ -1457,12 +1500,20 @@ RT_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 RT_d <- RT_for_d %>%
   mutate(variable="RT")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 #############
 AOI_switches_for_d <- mean_by_study %>%
@@ -1484,12 +1535,20 @@ AOI_switches_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 aoi_switches_d <- AOI_switches_for_d %>%
   mutate(variable="aoi_switches")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 ###########
 
 duration_look_for_d <- mean_by_study %>%
@@ -1511,12 +1570,20 @@ duration_look_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 duration_look_d <- duration_look_for_d %>%
   mutate(variable="duration_look")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 ##########
 
 pupil_size_for_d <- mean_by_study %>%
@@ -1538,12 +1605,20 @@ pupil_size_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 peak_pupil_d <- pupil_size_for_d  %>%
   mutate(variable="mean_peak_pupil_size_difference")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 ##############
 mean_pupil_size_for_d <- mean_by_study %>%
@@ -1565,12 +1640,20 @@ mean_pupil_size_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 mean_pupil_size_d <- mean_pupil_size_for_d %>%
   mutate(variable="mean_pupil_size_difference")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 #######
 pupil_latency_for_d <- mean_by_study %>%
@@ -1592,12 +1675,20 @@ pupil_latency_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 pupil_latency_d <- pupil_latency_for_d %>%
   mutate(variable="peak_pupil_latency")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 ###########
 first_look_dur_for_d <- mean_by_study %>%
   dplyr::select(mean_first_look_dur_experimental, mean_first_look_dur_NONexperimental,
@@ -1618,26 +1709,51 @@ first_look_dur_for_d <- mean_by_study %>%
       
   )%>%
   mutate(cohen_d =
-            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)
+            (experimental_study_mean-NONexperimental_study_mean)/pooled_sd)%>%
+  mutate(SE=sqrt( ((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                    ((cohen_d^2)/(2*(n_experimental+n_non_experimental)))
+    
+  )
+         ) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+   mutate(CI_upper = (cohen_d+(crit_value*SE)))
+
 
 #create a mini dataframe to later create a table with all the effects
 first_look_duration_d <- first_look_dur_for_d %>%
   mutate(variable="first_look_duration")%>%
-  dplyr::select(study, variable, cohen_d)
+  dplyr::select(study, variable, cohen_d, SE, CI_lower, CI_upper)
 
 
 
-#Create cohen's d table
+#Create cohen's d table #Note: for the paper make sure to organize the table by study
 
-all_dvs_c<- rbind(first_look_duration_d, pupil_latency_d, mean_pupil_size_d, peak_pupil_d, aoi_switches_d, duration_look_d, RT_d, prop_looking_d, prop_looking_diff_d, shift_target_d, shift_distractor_d, num_fixations_d)
+all_dvs_c<- rbind(first_look_duration_d, pupil_latency_d, mean_pupil_size_d, peak_pupil_d, aoi_switches_d, duration_look_d, RT_d, prop_looking_d, prop_looking_diff_d, shift_target_d, shift_distractor_d, num_fixations_d) %>%
+ group_by(study)
 
 
 
-#NOTE
-#These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
-experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
-#These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
-non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
+# #Create cohen's d visualization
+d<- ggplot(all_dvs_c, aes(x=cohen_d, y=variable, color=factor(study)))
+ 
+d_mean<- all_dvs_c %>%
+  ungroup()%>%
+  group_by(variable) %>%
+  summarize(mean_d= mean(cohen_d))
+
+d+geom_point(size=3)+
+  geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
+  geom_point(data = d_mean, aes(x = mean_d, y = variable), shape = 18, size = 4, color = "black") +
+  theme_minimal()+
+  scale_x_continuous(limits = c(-2,2))
+  
+
+
+# #NOTE
+# #These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
+# experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
+# #These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
+# non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
 
 
 ```
