@@ -93,8 +93,9 @@ n_subjects_after_trackloss_and_trials_exclusion <- n_distinct(analysis_dataset$r
 
 ```
 
-#Make variables
 
+
+#Make variables
 ```{r calculate all the different dependent variables}
 
 ###### First, create variables that will be useful for the calculations below ## TRY TO DO IT IN THE SAME DATA SET
@@ -1048,7 +1049,7 @@ analysis_dataset %>%
 
 ```
 
-#ICC Calculation
+#ICC Calculation --- ONLY USE WITH NON-EXPERIMENTAL DATASET
 ```{r ICC between DVs}
 
 
@@ -1181,6 +1182,7 @@ ICC(icc_first_look_dur , missing = FALSE, lmer = TRUE, alpha=.05)#0.76
 
 
 
+
 # #Not working because ICC should compare trial by trial the variables in each subject
 # for_icc <- data_new_dvs_by_subject %>%
 #   dplyr::select(where(is.numeric)) %>%
@@ -1201,6 +1203,155 @@ ICC(icc_first_look_dur , missing = FALSE, lmer = TRUE, alpha=.05)#0.76
 #the order for the above is Overall, Target, Distractor, Neither
 
 ```
+
+
+#ICC Calculation--- ONLY USE WITH EXPERIMENTAL DATASET
+```{r ICC between DVs}
+
+
+#For the experimental trials we want not a single ICC per variable but an ICC per variable per study thus 44 numbers in total (11 variables x 4 studies)
+
+
+exp_icc_prop_looking <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, prop_looking)) %>%
+  mutate(study = sub("_.*", "", recording_name))%>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = prop_looking) %>%
+ungroup() %>%
+  group_by(study)%>%
+  group_modify(~ tibble(icc = list(ICC(.x[ ,3:12], missing = FALSE, lmer = TRUE, alpha = 0.05)))) #This line of code makes a loop which applies the ICC function by study, to the experimental data in order to get an ICC3k value per study.
+
+  
+  
+  
+
+exp_icc_prop_looking_diff <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, prop_looking_diff)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = prop_looking_diff) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_number_fixations <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, number_fixations)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = number_fixations) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_prop_shift_distractor_initial <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, correct_shift)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = correct_shift) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_prop_shift_target_initial <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, mean_prop_shift_target_initial)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = mean_prop_shift_target_initial) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_mean_RT <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, latency_to_switch)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = latency_to_switch) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+exp_icc_aoi_switches <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, total_aoi_switches)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = total_aoi_switches) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+exp_icc_duration_of_look <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, duration_of_look)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = duration_of_look) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_peak_pupil_size_difference <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, peak_pupil_size_difference)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = peak_pupil_size_difference) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+exp_icc_mean_pupil_size_difference <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, mean_pupil_size_difference)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = mean_pupil_size_difference) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_peak_pupil_latency <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, peak_pupil_latency)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = peak_pupil_latency) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+exp_icc_first_look_dur <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, first_look_dur)) %>%
+  group_by(recording_name) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = first_look_dur) %>%
+#The code up to here makes the data wide with one row per subject and one DV value per trial (trials = cols)
+ungroup() %>%
+  dplyr::select(where(is.numeric))
+
+
+# #Not working because ICC should compare trial by trial the variables in each subject
+# for_icc <- data_new_dvs_by_subject %>%
+#   dplyr::select(where(is.numeric)) %>%
+#    dplyr::select(-c(age_months, exp_to_target_lang, exp_to_target_lang_centred, age_months_centred))
+# 
+# ICC(for_icc, missing = FALSE, lmer = TRUE, alpha=.05)
+# 
+# 
+# # ICC for split vriables
+# 
+# data_new_dvs_by_subject_split %>%
+#   group_split(initial_look) %>%
+#    setNames(unique(data_new_dvs_by_subject_split$initial_look)) %>%
+#   purrr::map(~dplyr::select(., where(is.numeric))) %>%
+#   purrr::map(~dplyr::select(., -c(exp_to_target_lang_centred, age_months_centred, samples_target, samples_distractor))) %>%
+#   purrr::map(~ICC(., missing = FALSE, lmer = TRUE, alpha=.05))
+  
+#the order for the above is Overall, Target, Distractor, Neither
+
+```
+
+
+
 
 #Correlation matrix
 ```{r correlation matrix between DVs}
