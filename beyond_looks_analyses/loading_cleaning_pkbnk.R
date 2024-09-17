@@ -12,4 +12,4 @@ adams_marchmann<- get_aoi_timepoints(dataset_name = "adams_marchman_2018") %>%
   left_join(get_administrations(dataset_name ="adams_marchman_2018")) %>%
   left_join(get_trials(dataset_name = "adams_marchman_2018")) %>%
   left_join(get_trial_types(dataset_name = "adams_marchman_2018")) %>%
-  left_join(get_stimuli(dataset_name = "adams_marchman_2018"))
+  left_join(get_stimuli(dataset_name = "adams_marchman_2018")) #This join is maybe causing a problem cause it is not neccesarily in the order in which the trials were presented, I don't think.
