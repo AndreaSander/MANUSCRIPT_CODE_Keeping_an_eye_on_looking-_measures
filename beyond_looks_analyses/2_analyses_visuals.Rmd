@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(tidyverse)
 knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 999)
 `%notin%` <- negate(`%in%`)
@@ -1906,15 +1907,15 @@ d<- ggplot(all_dvs_c, aes(x=cohen_d, y=variable, color=factor(study)))
 d_mean<- all_dvs_c %>%
   ungroup()%>%
   group_by(variable) %>%
-  summarize(mean_d= mean(cohen_d))
+  dplyr::summarize(mean_d= mean(cohen_d))
 
 d+geom_point(size=3)+
   geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
   geom_point(data = d_mean, aes(x = mean_d, y = variable), shape = 18, size = 4, color = "black") +
   theme_minimal()+
+  theme(plot.background = element_rect(fill = "white")) +
   scale_x_continuous(limits = c(-2,2))
   
-
 
 # #NOTE
 # #These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
@@ -1922,6 +1923,79 @@ d+geom_point(size=3)+
 # #These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
 # non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
 
+
+#---------------------------------------HK note: this chunk (below) was in an older version of this script on GitHub but not the most recent one... not sure if it got deleted on purpose or by accident, but adding it back in just in case it's useful for the Cohen's D graphs. It does all the variables at the same time so you don't have to have so many bits and pieces done separately.
+
+#HK note: make data long with column indicating analysis dataset type (experimental versus non), one column for means, one for SDs, then can calculate Cohen's D by row for each variable type. Put both means SDs dataframes into one dataframe.
+experimental_means_sds_long <- experimental_means_sds %>%
+  rename(mean_prop_shift_distractor_initial = prop_shift_distractor_initial,
+         mean_total_aoi_switches = total_aoi_switches) %>%
+  pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches") #HK note: I don't remember exactly why we removed this, but there is no SD for this variable in the csv files we read in for the Cohen's D stuff so if we want to include it, we'll have to remake those I think
+non_experimental_means_sds_long <- non_experimental_means_sds %>%
+  rename(mean_prop_shift_distractor_initial = prop_shift_distractor_initial) %>%
+ pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("non_experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches")
+cohens_ds <- experimental_means_sds_long %>%
+  inner_join(non_experimental_means_sds_long %>% dplyr::select(recording_name, variable, contains("_mean"), contains("_sd"), contains("_n_trials"))) %>%
+  mutate(pooled_sd = sqrt(((non_experimental_n_trials - 1) * non_experimental_sd^2 + (experimental_n_trials - 1) * experimental_sd^2) / (non_experimental_n_trials + experimental_n_trials - 2)),
+         cohens_d = (non_experimental_mean - experimental_mean) / pooled_sd,
+         study = str_replace(str_extract(recording_name, ".*(?=_S.*)"), "_", ""))
+#These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
+experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
+#These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
+non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
+
+cohens_ds_all_variables <- cohens_ds %>% 
+  group_by(study, variable) %>% 
+  dplyr::summarize(n_experimental = sum(!is.na(experimental_mean)),
+                   n_non_experimental = sum(!is.na(non_experimental_mean)), 
+                   experimental_means= mean(experimental_mean, na.rm=T),
+                   non_experimental_means= mean(non_experimental_mean, na.rm=T),
+                   experimental_sd= sd(experimental_mean, na.rm=T),
+                   non_experimental_sd= sd(non_experimental_mean, na.rm=T)) %>% 
+  rename(experimental_mean = experimental_means, 
+         non_experimental_mean = non_experimental_means) %>%
+  mutate(pooled_sd = sqrt((((n_experimental-1)*(experimental_sd^2))+((n_non_experimental-1)*(non_experimental_sd^2)))/((n_experimental+n_non_experimental)-2))) %>%
+  mutate(cohen_d = (experimental_mean-non_experimental_mean)/pooled_sd) %>%
+  mutate(SE=sqrt(((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                        ((cohen_d^2)/(2*(n_experimental+n_non_experimental))))) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+  mutate(CI_upper = (cohen_d+(crit_value*SE))) %>% 
+  ungroup()
+
+# #Create cohen's d visualization
+ 
+cohens_ds_across_studies_mean<- cohens_ds_all_variables %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  group_by(variable) %>%
+  dplyr::summarize(cohen_d= mean(cohen_d))
+
+cohens_ds_all_variables %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  ggplot(aes(x = cohen_d, y = variable, color = study)) +
+  geom_point(size=3)+
+  #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
+  geom_point(data = cohens_ds_across_studies_mean, aes(x = cohen_d, y = variable), shape = 18, size = 4, color = "black") +
+  labs(x = "Cohen's D",
+       y = "Variable",
+       title = "Distribution of Cohen's D across variables and studies",
+       color = "Study") +
+  theme_minimal()+
+  theme(plot.background = element_rect(fill = "white")) +
+  scale_x_continuous(limits = c(-2,2))
+  
+ggsave(here::here("cohens_d_plot.png"))
 
 ```
 
