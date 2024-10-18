@@ -14,7 +14,7 @@ options(scipen = 999)
 # Set variables for which dataset to analyze
 ```{r}
 
-analysis_type <- "experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
+analysis_type <- "non-experimental" #choose from "experimental" or "non-experimental" to run the entire script on either just the experimental trials or just the non-experimental trials
 
 ```
 
@@ -1371,20 +1371,6 @@ ungroup() %>%
   group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[ ,3:12], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
   unnest(icc) #This line of code makes a loop which applies the ICC function by study, to the experimental data in order to get an ICC3k value per study. #HK added a few things here to get all the info we need into one data frame
 
-#--------------------------------------HK note: below I have calculated the ICC for all variables with the same code chunk, eliminating the need for the rest of the pieces in this chunk. However, when it runs, we are getting quite a few singular fit warnings
-
-exp_icc_all_varaibles <- data_new_dvs_by_trial %>%
-   dplyr::select(c(recording_name, prop_looking, prop_looking_diff, number_fixations, correct_shift, mean_prop_shift_target_initial, latency_to_switch, total_aoi_switches, duration_of_look, peak_pupil_size_difference, mean_pupil_size_difference, peak_pupil_latency, first_look_dur)) %>%
-  mutate(study = sub("_.*", "", recording_name)) %>%
-  pivot_longer(prop_looking:first_look_dur, names_to = "variable", values_to = "response") %>%
-  group_by(recording_name, variable) %>%
-  mutate(ntrial = row_number()) %>%
-  pivot_wider(names_from = ntrial, values_from = response) %>%
-ungroup() %>%
-  group_by(study, variable)%>%
-  group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[ ,3:12], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
-  unnest(icc)
-  
 
 exp_icc_prop_looking_diff <- data_new_dvs_by_trial %>%
    dplyr::select(c(recording_name, prop_looking_diff)) %>%
@@ -1510,7 +1496,50 @@ ungroup() %>%
 
 ```
 
+###Hilary's one-chunk version - can use for both exp and non-exp
 
+```{r}
+#--------------------------------------HK note: below I have calculated the ICC for all variables with the same code chunk, eliminating the need for the rest of the pieces in this chunk. However, when it runs, we are getting quite a few singular fit warnings
+
+exp_icc_all_varaibles <- data_new_dvs_by_trial %>%
+   dplyr::select(c(recording_name, prop_looking, prop_looking_diff, number_fixations, correct_shift, mean_prop_shift_target_initial, latency_to_switch, total_aoi_switches, duration_of_look, peak_pupil_size_difference, mean_pupil_size_difference, peak_pupil_latency, first_look_dur)) %>%
+  mutate(study = str_extract(recording_name, ".*(?=_S)"),
+         study = str_remove(study, "_")) %>%
+  pivot_longer(prop_looking:first_look_dur, names_to = "variable", values_to = "response") %>%
+  group_by(recording_name, variable) %>%
+  mutate(ntrial = row_number()) %>%
+  pivot_wider(names_from = ntrial, values_from = response) %>%
+ungroup() %>%
+  group_by(study, variable)%>%
+  group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[ ,3:12], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
+  unnest(icc)
+  
+exp_icc_across_studies_mean<- exp_icc_all_varaibles %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  group_by(variable) %>%
+  dplyr::summarize(ICC= mean(ICC))
+
+exp_icc_all_varaibles %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  ggplot(aes(x = ICC, y = variable, color = study)) +
+  geom_point(size=3, alpha = .75)+
+  #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
+  geom_point(data = exp_icc_across_studies_mean, aes(x = ICC, y = variable), shape = 18, size = 4, color = "black") +
+  labs(x = "ICC",
+       y = "Variable",
+       title = paste0("Distribution of ICC across variables and studies\n(", str_to_title(analysis_type), " trials)"),
+       color = "Study") +
+  theme_minimal()+
+  theme(plot.background = element_rect(fill = "white")) +
+  scale_x_continuous(limits = c(0,1))
+  
+ggsave(here::here(paste0("icc_plot_", analysis_type, ".png")))
+
+```
 
 
 #Correlation matrix
