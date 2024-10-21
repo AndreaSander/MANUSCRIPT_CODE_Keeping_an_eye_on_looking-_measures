@@ -1081,6 +1081,18 @@ first_look_duration_by_subject_split <- first_look_duration_by_trial %>%
 #Add new variables to one dataset
 ```{r merging newly created DVs to the original dataset}
 
+#ASM: Got rid of the "initial look column" in some of the datasets because it was causing issues when joining all the datasets together.
+
+prop_shifts_distractor_initial_by_subject <- prop_shifts_distractor_initial_by_subject %>%
+  dplyr::select(-initial_look)
+prop_shifts_distractor_initial_by_trial <- prop_shifts_distractor_initial_by_trial %>%
+  dplyr::select(-initial_look)
+prop_shifts_target_initial_by_subject <- prop_shifts_target_initial_by_subject %>%
+  dplyr::select(-initial_look)
+prop_shifts_target_initial_by_trial <- prop_shifts_target_initial_by_trial %>%
+  dplyr::select(-initial_look)
+
+
 data_new_dvs_by_trial <- analysis_dataset %>%
   distinct(recording_name, trial_number, yoked_pair, target_word, age_months, exp_to_target_lang) %>%
   left_join(prop_looking_by_trial) %>%
@@ -1110,8 +1122,8 @@ data_new_dvs_by_subject <- analysis_dataset %>%
   left_join(prop_looking_diff_by_subject) %>%
   # commenting out for now until we verify how to do this one left_join(sampling_fixations_total %>% dplyr::select(-subject_id)) %>%
   left_join(mean_num_fixations_by_subject) %>%
-  left_join(prop_shifts_distractor_initial_by_subject) %>%
   left_join(prop_shifts_target_initial_by_subject) %>%
+  left_join(prop_shifts_distractor_initial_by_subject) %>%
   left_join(RT_by_subject) %>%
   left_join(number_of_switches_by_subject) %>%
   left_join(mean_fixation_dur_by_subject) %>%
@@ -1515,15 +1527,21 @@ ungroup() %>%
   unnest(icc)
   
 exp_icc_across_studies_mean<- exp_icc_all_varaibles %>%
-  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+  mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "duration_of_look" ~ "mean duration of looks",
+                              variable == "correct_shift" ~ "proportion trials shifting to target",
+                              variable == "mean_prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   group_by(variable) %>%
   dplyr::summarize(ICC= mean(ICC))
 
 exp_icc_all_varaibles %>%
-  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+  mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "duration_of_look" ~ "mean duration of looks",
+                              variable == "correct_shift" ~ "proportion trials shifting to target",
+                              variable == "mean_prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   ggplot(aes(x = ICC, y = variable, color = study)) +
   geom_point(size=3, alpha = .75)+
@@ -2186,6 +2204,8 @@ cohens_ds_all_variables <- cohens_ds %>%
 cohens_ds_across_studies_mean<- cohens_ds_all_variables %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_distractor_initial" ~ "proportion trials shifting to target",
+                              variable == "prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   group_by(variable) %>%
   dplyr::summarize(cohen_d= abs(mean(cohen_d)))
@@ -2193,6 +2213,8 @@ cohens_ds_across_studies_mean<- cohens_ds_all_variables %>%
 cohens_ds_all_variables %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_distractor_initial" ~ "proportion trials shifting to target",
+                              variable == "prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   ggplot(aes(x = cohen_d, y = variable, color = study)) +
   geom_point(size=3)+
@@ -2276,6 +2298,7 @@ cohens_ds_across_studies_mean_distractor_initial<- cohens_ds_all_variables_distr
   filter(variable != "prop_looking_diff") %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                                                            variable == "prop_shift_distractor_initial" ~ "proportion trials shifting to target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   group_by(variable) %>%
   dplyr::summarize(cohen_d= abs(mean(cohen_d)))
@@ -2285,6 +2308,7 @@ cohens_ds_all_variables_distractor_initial %>%
   filter(variable != "prop_looking_diff") %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                                                            variable == "prop_shift_distractor_initial" ~ "proportion trials shifting to target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   ggplot(aes(x = cohen_d, y = variable, color = study)) +
   geom_point(size=3, alpha = .75)+
@@ -2828,6 +2852,7 @@ cohens_ds_across_studies_mean_target_initial<- cohens_ds_all_variables_target_in
   filter(variable != "prop_looking_diff") %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   group_by(variable) %>%
   dplyr::summarize(cohen_d= abs(mean(cohen_d)))
@@ -2837,6 +2862,7 @@ cohens_ds_all_variables_target_initial %>%
   filter(variable != "prop_looking_diff") %>%
   mutate(variable = case_when(variable == "RT" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_target_initial" ~ "proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   ggplot(aes(x = cohen_d, y = variable, color = study)) +
   geom_point(size=3, alpha = .75)+
