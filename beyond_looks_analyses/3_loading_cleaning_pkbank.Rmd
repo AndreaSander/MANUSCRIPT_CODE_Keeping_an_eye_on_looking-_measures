@@ -1,0 +1,56 @@
+---
+title: "Peekbank"
+output: html_document
+date: "2024-10-23"
+---
+
+```{r setup, include=FALSE}
+
+#remotes::install_github("peekbank/peekbankr")
+library(peekbankr)
+library(tidyverse)
+library(dbplyr)
+library(tidylog)
+
+```
+
+
+```{r}
+
+#Get peekbank data 
+
+adams_marchmann <- get_aoi_timepoints(dataset_name = "adams_marchman_2018") %>%
+  left_join(get_administrations(dataset_name ="adams_marchman_2018")) %>%
+  left_join(get_trials(dataset_name = "adams_marchman_2018")) %>%
+  left_join(get_trial_types(dataset_name = "adams_marchman_2018")) %>%
+  left_join(get_stimuli(dataset_name = "adams_marchman_2018") %>% rename(target_id = stimulus_id)) 
+
+
+frank_tablet <- get_aoi_timepoints(dataset_name = "frank_tablet_2016") %>%
+  left_join(get_administrations(dataset_name ="frank_tablet_2016")) %>%
+  left_join(get_trials(dataset_name = "frank_tablet_2016")) %>%
+  left_join(get_trial_types(dataset_name = "frank_tablet_2016")) %>%
+  left_join(get_stimuli(dataset_name = "frank_tablet_2016") %>% rename(target_id = stimulus_id)) 
+
+```
+
+#Make peekbank data match ours
+
+```{r}
+
+#Frank has 3 trial conditions: familiar-familiar (non-experimental), familiar-NOVEL, and FAMILIAR-novel (we assume where the child was asked to look at either the known or the novel word based on mutual exclusivity)
+frank_tablet %>%
+  #rename columns to match our own dataset column names
+  rename(recording_name = administration_id,
+         age_in_months = age,
+         target_word = original_stimulus_label) %>% 
+  #create numeric trial number that starts at 1
+  mutate(trial_number = trial_id - min(trial_id) + 1) 
+  #create yoked pair variable
+
+  #create initial look variable
+
+
+```
+
+

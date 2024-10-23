@@ -1,5 +1,5 @@
 
-# remotes::install_github("peekbank/peekbankr")
+ remotes::install_github("peekbank/peekbankr")
 library(peekbankr)
 library(dplyr)
 library(tidyr)
