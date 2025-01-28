@@ -1,0 +1,26 @@
+﻿study_name,max_trials_study,exp_type
+CogMisp-24,12,non-experimental
+CompMix-36,16,non-experimental
+LearnMix-36,6,non-experimental
+Mix-14,12,non-experimental
+Mix-20,12,non-experimental
+CogMisp-24,12,experimental
+CompMix-36,8,experimental
+Mix-14,7,experimental
+Mix-20,8,experimental
+casillas_tseltal_2015  ,30,non-experimental
+ronfard_2021           ,,non-experimental
+pomper_saffran_2016    ,,non-experimental
+weisleder_stl          ,,non-experimental
+fmw_2013               ,,non-experimental
+xsectional_2007        ,,non-experimental
+swingley_aslin_2002    ,,non-experimental
+potter_remix           ,,non-experimental
+hurtado_2008           ,,non-experimental
+garrison_bergelson_2020,,non-experimental
+frank_tablet_2016   ,,non-experimental
+pomper_saffran_2016    ,,experimental
+swingley_aslin_2002    ,,experimental
+potter_remix           ,,experimental
+garrison_bergelson_2020,,experimental
+frank_tablet_2016,,experimental
