@@ -1,13 +1,11 @@
 ---
-title: "Peekbank"
+title: "Archival"
 output: html_document
 date: "2024-10-23"
 ---
 
 ```{r setup, include=FALSE}
 
-#remotes::install_github("peekbank/peekbankr")
-library(peekbankr)
 library(tidyverse)
 library(dbplyr)
 library(tidylog)
@@ -20,114 +18,60 @@ library(here)
 
 ```{r}
 
-#Get peekbank data - start with 5 datasets that have been code checked
+#Get data
 
+load(here("archival_KBH_anonimyzed/kbh_w_items.Rda"))
+load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
 
-code_checked_studies <- c("casillas_tseltal_2015", "ronfard_2021", "pomper_saffran_2016", "weisleder_stl", "fmw_2013", "xsectional_2007", "swingley_aslin_2002", "potter_remix", "hurtado_2008", "garrison_bergelson_2020", "bacon_gendercues", "frank_tablet_2016", "baumgartner_2014")
-
-peekbank_data <- get_aoi_timepoints(dataset_name = code_checked_studies) %>%
-  left_join(get_administrations(dataset_name = code_checked_studies)) %>%
-  left_join(get_trials(dataset_name = code_checked_studies)) %>%
-  left_join(get_trial_types(dataset_name = code_checked_studies)) %>%
-  left_join(get_stimuli(dataset_name = code_checked_studies) %>% rename(target_id = stimulus_id)) %>%
-  left_join(get_stimuli(dataset_name = code_checked_studies) %>% rename(distractor_id = stimulus_id) %>%
-              dplyr::select(distractor_stimulus_label = english_stimulus_label, distractor_id, dataset_id, dataset_name)) %>% 
-  group_by(dataset_id, dataset_name, administration_id) %>%
-  #create numeric trial number that starts at 1
-  mutate(trial_number = trial_id - min(trial_id) + 1,
-         trial_index = data.table::rleid(trial_number)) %>%
-  ungroup() %>%
-  mutate(exp_type = case_when(condition == "familiar-familiar" ~ "non-experimental",
-                              condition == "familiar-NOVEL" ~ "experimental",
-                              condition == "FAMILIAR-novel" ~ "experimental",
-                              is.na(condition) & dataset_name == "casillas_tseltal_2015" ~ "non-experimental",
-                              condition == "Unique" ~ "experimental",
-                              condition == "Generic" ~ "non-experimental",
-                              condition == "color" ~ "experimental",
-                              condition == "target_image" ~ "non-experimental",
-                              condition == "cp" ~ "non-experimental",
-                              condition == "m-e" ~ "experimental",
-                              condition == "m-h" ~ "experimental",
-                              condition == "filler" ~ "DELETE",
-                              str_detect(condition, "^mix_")  ~ "experimental",
-                              str_detect(condition, "^same_") ~ "non-experimental",
-                              is.na(condition) & dataset_name == "fmw_2013" ~ "non-experimental",
-                              is.na(condition) & dataset_name == "hurtado_2008" ~ "non-experimental",
-                              is.na(condition) & dataset_name == "ronfard_2021" ~ "non-experimental",
-                              is.na(condition) & dataset_name == "weisleder_stl" ~ "non-experimental",
-                              is.na(condition) & dataset_name == "xsectional_2007" ~ "non-experimental")) %>%
-  #rename columns to match our own dataset column names
-  rename(age_months = age,
-         target_word = original_stimulus_label,
-         noun_onset = t_norm,
-         media_name = english_stimulus_label)  %>%
-  mutate(target = case_when(aoi == "target" ~ 1,
-                            aoi == "missing" ~ NA_real_, 
-                            TRUE ~ 0),
-         distractor = case_when(aoi == "distractor" ~ 1,
-                            aoi == "missing" ~ NA_real_, 
-                            TRUE ~ 0),
-         trackloss = case_when(aoi == "missing" ~ TRUE,
-                            TRUE ~ FALSE),
-         age_months = floor(age_months), #fix a few months that have decimal points, since none of the other ones do
-         recording_name = paste0(subject_id, "_", dataset_name, "_", age_months)) %>%
-  filter(!is.na(age_months)) %>% #one kid has NA for age and it's messing things up for the ICC calculation... not sure we can do any real analysis for an unknown age, so remove them.
-  filter(exp_type != "DELETE")
+anon_data <- kbh_w_items %>%
+  mutate(exp_type = "non-experimental") %>%
+  bind_rows(kbh_experimental_items %>%
+  mutate(exp_type = "experimental"))  %>%
+  rename(dataset_name = studio_project_name) %>%
+  filter(!(recording_name == "Mix_20_S52" & trial_number > 1)) #Mix 20 S052 has 23 rows for trials other than trial 1 with no data—remove these here, try to figure out why this happened
+  
+rm(kbh_w_items)
+rm(kbh_experimental_items)
 
 ```
 
-#Clean data, trackloss exclusions
+#Clean data for trackloss
 
 ```{r, message=FALSE}
 
 print_list <- list()
 
-#-----------------------------------------Exclusions based on looking data (before segmenting)
-
 ####### Only keep kids with at least 50% of interest period looking AND who have at least 25% of trials
 ## Total trials for each study is usually 12 (CogMisp, Mix), except CompMix, CompLearn with 16, LearnMix with 6
 
-#Some peekbank datasets have multiple ages where each age was shown a different number of trials. To correctly calculate trial cutoff, need to know the intended study age and max number of trials.
-
-max_trials <- read_csv(here("max_trials_peekbank.csv"))
-
-trial_cutoff <- peekbank_data %>%
-  group_by(recording_name, dataset_name, age_months) %>%
+trial_cutoff <- anon_data %>%
+  group_by(recording_name, dataset_name) %>%
   distinct(trial_number) %>%
   count(recording_name) %>%
   rename(n_trials_subject = n) %>%
-  mutate(intended_study_age = case_when(dataset_name %in% c("casillas_tseltal_2015") ~ 0,
-                                        dataset_name %in% c("frank_tablet_2016", "xsectional_2007") ~ 12,
-                                        dataset_name %in% c("swingley_aslin_2002") ~ 14,
-                                        dataset_name %in% c("potter_remix", "ronfard_2021") ~ 18,
-                                        dataset_name %in% c("weisleder_stl") & age_months < 24 ~ 18,
-                                        dataset_name %in% c("fmw_2013", "hurtado_2008") & age_months < 22 ~ 18,
-                                        dataset_name %in% c("fmw_2013", "hurtado_2008") & age_months >= 22 ~ 24,
-                                        dataset_name %in% c("garrison_bergelson_2020") ~ 24,
-                                        dataset_name %in% c("pomper_saffran_2016") ~ 36
-                                        )) %>%
-  left_join(max_trials)
+  group_by(dataset_name) %>%
+  mutate(max_trials = max(n_trials_subject)) %>% #HK note: this works in our data because some kids have all possible trials, but will have to change how it's done for peekbank
+  ungroup() %>%
+  distinct(dataset_name, recording_name, max_trials)
 
-
-
-n_subjects_original <- peekbank_data %>%
+n_subjects_original <- anon_data %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name)
 
-n_trials_original <- peekbank_data %>%
+n_trials_original <- anon_data %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow()
 
-print_list[[paste("Pre-exclusions N subjects:")]] <- n_subjects_original
+print_list[[paste("Pre-exclusions N:")]] <- n_subjects_original
 print_list[[paste("Pre-exclusions N trials:")]] <- n_trials_original
   
-trackloss_cleaned <- peekbank_data %>%
+trackloss_cleaned <- anon_data %>%
   #filter to interest period
   filter(noun_onset>= 360 & noun_onset <= 3000) %>%
   #for each kid in each trial,
   group_by(recording_name, trial_number) %>%
   #get trackloss percentage
-  mutate(trackloss_pct = sum(aoi == "missing")/n(),
+  mutate(trackloss_pct = sum(trackloss == TRUE)/n(),
          trackloss_cutoff = case_when(trackloss_pct <.5 ~ "keep",
                                       trackloss_pct >= .5 ~ "exclude")) %>%
   ungroup() %>%
@@ -148,19 +92,19 @@ n_trials_after_trackloss_exclusion <- trackloss_cleaned %>%
 
 print_list[[paste("After Trackloss Cleaning N subjects:")]] <- n_subjects_after_trackloss_exclusion
 print_list[[paste("After Trackloss Cleaning N trials:")]] <- n_trials_after_trackloss_exclusion
-  
-peekbank_data_after_exclusions <- peekbank_data %>%
+
+anon_data_after_exclusions <- anon_data %>%
   right_join(trackloss_cleaned) %>%
   left_join(trial_cutoff) %>%
   mutate(trial_n_cutoff = round(max_trials*.25, digits = 0)) %>%
   filter(n_valid_trials_subject >= trial_n_cutoff) %>%
   ungroup()
 
-n_subjects_after_trackloss_and_trials_exclusion <- peekbank_data_after_exclusions %>%
+n_subjects_after_trackloss_and_trials_exclusion <- anon_data_after_exclusions %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name) #XX kids lost from these exclusions
 
-n_trials_after_trackloss_and_trials_exclusion <- peekbank_data_after_exclusions %>%
+n_trials_after_trackloss_and_trials_exclusion <- anon_data_after_exclusions %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow() #XX kids lost from these exclusions
 
@@ -169,13 +113,14 @@ print_list[[paste("After Trackloss and Trials Exclusions N trials:")]] <- n_tria
 
 ```
 
+
 #Make variables
 ```{r}
 
-for (i in 1:n_distinct(peekbank_data$exp_type)) {
+for (i in 1:n_distinct(anon_data$exp_type)) {
   
-  analysis_type <- unique(peekbank_data$exp_type)[[i]]
-  analysis_dataset <- peekbank_data_after_exclusions %>%
+  analysis_type <- unique(anon_data$exp_type)[[i]]
+  analysis_dataset <- anon_data_after_exclusions %>%
     filter(exp_type == analysis_type)
 
 #create initial look variable 
@@ -184,9 +129,9 @@ initial_looks <- analysis_dataset %>%
   filter(noun_onset >= 260 & noun_onset < 360) %>%
   group_by(recording_name, trial_number, media_name) %>% 
      summarise(
-    distractor_count = sum(aoi == "distractor"),
-    target_count = sum(aoi == "target"),
-    trackloss_count = sum(aoi == "missing") + sum(is.na(aoi))
+    distractor_count = sum(distractor),
+    target_count = sum(target),
+    trackloss_count = sum(trackloss)
      )%>%
   mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
                                   distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
@@ -212,7 +157,7 @@ for (j in c("target", "distractor", "all")) {
 prop_looking_by_trial <- analysis_dataset_split %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
   group_by(recording_name, subject_id, trial_number, media_name, 
-           age_months, initial_look) %>%
+           age_months, exp_to_target_lang, initial_look) %>%
   summarise(samples_target=sum(target, na.rm = T),
             samples_distractor=sum(distractor, na.rm = T))%>%
   mutate(prop_looking = samples_target/(samples_target + samples_distractor)) %>%
@@ -230,10 +175,9 @@ prop_looking_by_subject <- prop_looking_by_trial %>%
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
 prop_looking_diff_by_item <- analysis_dataset_split %>%
-  rename(distractor_word = distractor_stimulus_label) %>%
   ungroup()%>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  dplyr::select(recording_name, noun_onset, target_word, distractor_word, target, distractor)%>%
+  dplyr::select(recording_name, recording_timestamp, target_word, distractor_word, target, distractor)%>%
   pivot_longer(c(target_word, distractor_word), names_to = "word_type", values_to = "word") %>%
   mutate(looking = case_when(word_type == "target_word" & target == TRUE ~ TRUE,
                              word_type == "distractor_word" & distractor == TRUE ~ TRUE,
@@ -308,13 +252,13 @@ longest_look_by_trial <- analysis_dataset_split %>%
   filter(n() >= 12) %>%
   #filter to target fixations
   filter(target == TRUE) %>%
-  count(recording_name, trial_number, looking_stretch_id, initial_look, sample_rate) %>%
+  count(recording_name, trial_number, looking_stretch_id, initial_look) %>%
   group_by(recording_name, trial_number, initial_look) %>%
   filter(n == max(n)) %>%
   slice_head(n = 1) %>%
   ungroup() %>%
-  mutate(longest_look_by_trial = n*(1000/sample_rate)) %>%
-  dplyr::select(-n, -sample_rate, -looking_stretch_id)
+  mutate(longest_look_by_trial = n*(1000/60)) %>%
+  dplyr::select(-n, -looking_stretch_id)
 
 #before, this was just counting number of fixations... changed to mean number fixations per trial per child
 mean_longest_look_by_subject <- longest_look_by_trial %>%
@@ -434,9 +378,9 @@ mean_fixation_dur_by_trial <- analysis_dataset_split %>%
   #filter to fixations of at least 12 rows or ~ 200 ms
   filter(n() >= 12) %>%
   filter(target == TRUE) %>%
-  group_by(recording_name, trial_number, media_name, looking_stretch_id, initial_look, sample_rate) %>%
+  group_by(recording_name, trial_number, media_name, looking_stretch_id, initial_look) %>%
   summarise(length_of_looks = n()) %>%
-  mutate(duration_of_look = length_of_looks*(1000/sample_rate)) %>%
+  mutate(duration_of_look = length_of_looks*(1000/60)) %>%
   group_by(recording_name, trial_number, initial_look) %>%
   summarise(duration_of_look = mean(duration_of_look, na.rm = T)) %>%
   ungroup()
@@ -455,7 +399,7 @@ mean_fixation_dur_by_subject <- mean_fixation_dur_by_trial %>%
 first_look_duration_by_trial <- analysis_dataset_split %>%
   ungroup() %>%
   filter(noun_onset >= 360 & noun_onset <= 3000) %>%
-  group_by(recording_name, trial_number) %>%
+  group_by(recording_name, trial_number) %>% 
   mutate(trackloss_group_id = data.table::rleid(trackloss)) %>%
   group_by(trackloss_group_id, recording_name, trial_number) %>%
   mutate(num_consec_trackloss_rows = n()) %>%
@@ -469,7 +413,7 @@ first_look_duration_by_trial <- analysis_dataset_split %>%
                                    distractor == TRUE ~ "distractor",
                                    TRUE ~ "neither")) %>%
   filter(where_looking == "target") %>%
-  mutate(first_look_dur = max(row_number())*(1000/sample_rate)) %>% 
+  mutate(first_look_dur = max(row_number())*(1000/60)) %>% 
   filter(first_look_dur >= 200) %>%
   group_by(trial_number, recording_name) %>%
   filter(looking_stretch_id == min(looking_stretch_id)) %>% 
@@ -483,13 +427,88 @@ first_look_duration_by_subject <- first_look_duration_by_trial %>%
             sd_first_look_dur = sd(first_look_dur, na.rm = T),
             n_trials_first_look_dur = length(unique(trial_number))) %>%
   ungroup()
- 
+
+#Pupil dilation
+#Baseline pupil size in the 200ms before noun onset and then subtracted the baseline from the pupil size measurements on each trial.
+#In Liz's paper they contrasted time slice by time slice across two conditions, but here we don't have switched and same language conditions. I'll do average size at baseline and avg size after noun onset for now. But then talk with team about it.
+
+
+pupil_dilation <- analysis_dataset_split %>%
+  ungroup() %>%
+  filter(noun_onset>= -200 & noun_onset <= 500)%>%
+mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
+                                TRUE ~ "post_onset"))%>% 
+  dplyr::select(recording_timestamp, subject_id, recording_name, trial_number, media_name, pupil_period, pupil_right, pupil_left, initial_look) %>%
+  mutate(two_pupil_mean = case_when(is.na(pupil_left) & is.na(pupil_right) ~ NA,
+                                         is.na(pupil_left)  ~ pupil_right,
+                                         is.na(pupil_right) ~ pupil_left,
+                                         TRUE ~ (pupil_left + pupil_right)/2)) %>%
+  filter(!is.na(two_pupil_mean))
+
+#The next steps are confusing to me.Should we average baseline pupil? Should we contrast each post onset time slice to a partricular baseline time slice? We could use mean dilation, peak dilation (or peak amplitude), and/or peak latency (i.e., the time between onset and peak pupil dilation). The problem with mean dilation is that the baseline has less sampling than the post-onset. Could we do peak dilation of baseline vs. peak dilation post onset? Or peak dilation but from which baseline point? from peak? We will for sure do GCA's as extra analyses
+
+#Peak dilation
+peak_dilation_by_trial <- pupil_dilation %>%
+  ungroup()%>%
+  group_by(trial_number, recording_name, subject_id, pupil_period, initial_look) %>%
+  summarise(peak_pupil = max(two_pupil_mean)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="peak_pupil")%>%
+  mutate(peak_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
+  filter(!is.na(peak_pupil_size_difference)) %>%
+  rename(max_pupil_baseline = baseline,
+         max_pupil_post_onset = post_onset) %>%
+  ungroup()
+
+peak_dilation_by_subject <- peak_dilation_by_trial %>%
+  group_by(recording_name, subject_id) %>%
+  summarise(mean_peak_pupil_size_difference = mean(peak_pupil_size_difference),
+            sd_peak_pupil_size_difference = sd(peak_pupil_size_difference),
+            n_trials_peak_pupil_size_difference = length(unique(trial_number))) %>%
+  ungroup() 
+  
+#Mean dilation
+mean_dilation_by_trial <- pupil_dilation %>%
+  ungroup()%>%
+  group_by(trial_number, recording_name, subject_id, pupil_period, initial_look) %>%
+  summarise(mean_pupil = mean(two_pupil_mean, na.rm = T)) %>%
+  pivot_wider(names_from = pupil_period, values_from ="mean_pupil")%>%
+  mutate(mean_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
+  filter(!is.na(mean_pupil_size_difference)) %>%
+  rename(mean_pupil_baseline = baseline,
+         mean_pupil_post_onset = post_onset) %>%
+  ungroup() 
+
+mean_dilation_by_subject <- mean_dilation_by_trial %>%
+  group_by(recording_name, subject_id) %>%
+  summarise(mean_mean_pupil_size_difference = mean(mean_pupil_size_difference),
+            sd_mean_pupil_size_difference = sd(mean_pupil_size_difference),
+            n_trials_mean_pupil_size_difference = length(unique(trial_number))) %>%
+  ungroup()
+
+#peak latency
+peak_pupil_latency_by_trial <- pupil_dilation %>%
+  ungroup()%>%
+  group_by(trial_number, recording_name, pupil_period) %>%
+  slice(which.max(two_pupil_mean)) %>%
+  dplyr::select(recording_name, subject_id, pupil_period, peak_time_stamp = recording_timestamp, initial_look) %>%
+  group_by(trial_number, recording_name, subject_id, initial_look) %>%
+  summarise(peak_pupil_latency = diff(peak_time_stamp)) %>%
+  ungroup()
+
+peak_pupil_latency_by_subject <- peak_pupil_latency_by_trial %>%
+  group_by(recording_name, subject_id) %>%
+  summarise(mean_peak_pupil_latency = mean(peak_pupil_latency),
+            sd_peak_pupil_latency = sd(peak_pupil_latency),
+            n_trials_peak_pupil_latency = length(unique(trial_number)))
+
+
+
+#------------------------------Put all together in one dataset
+
 data_new_dvs_by_trial <- analysis_dataset_split %>%
-  distinct(recording_name, trial_number, subject_id, dataset_name, age_months, target_word) %>%
+  distinct(recording_name, trial_number, subject_id, dataset_name, age_months, target_word, exp_to_target_lang, fre_exp, eng_exp) %>%
   left_join(prop_looking_by_trial) %>%
-  #double check if kids see the same word more than once... if so, this item will be ducplicated in the dataset
   left_join(prop_looking_diff_by_item) %>%
-  # commenting out for now until we verify how to do this one left_join(sampling_fixations_total %>% dplyr::select(-subject_id)) %>%
   left_join(fixations_total_by_trial) %>%
   left_join(prop_shifts_distractor_initial_by_trial %>% dplyr::select(-media_name, -target, -distractor)) %>%
   left_join(prop_shifts_target_initial_by_trial %>% dplyr::select(-media_name, -target, -distractor) %>% rename(remain_on_target = correct_shift)) %>%
@@ -497,7 +516,10 @@ data_new_dvs_by_trial <- analysis_dataset_split %>%
   left_join(number_of_switches_by_trial) %>%
   left_join(mean_fixation_dur_by_trial) %>%
   left_join(first_look_duration_by_trial) %>%
-  left_join(longest_look_by_trial) %>%
+  left_join(longest_look_by_trial) %>% 
+  left_join(peak_dilation_by_trial) %>%
+  left_join(mean_dilation_by_trial) %>%
+  left_join(peak_pupil_latency_by_trial) %>%
   ungroup() %>%
   mutate(age_months_centred = age_months - 25,
          correct_shift = case_when(correct_shift == T ~ 1,
@@ -506,11 +528,9 @@ data_new_dvs_by_trial <- analysis_dataset_split %>%
                                    remain_on_target == F ~ 0))
 
 data_new_dvs_by_subject <- analysis_dataset_split %>%
-  distinct(recording_name, subject_id, dataset_name, age_months) %>% #Added french and english exposure to be able to calculate balance for some analyses.
+  distinct(recording_name, subject_id, dataset_name, age_months, exp_to_target_lang, fre_exp, eng_exp) %>% 
   left_join(prop_looking_by_subject) %>%
-  #double check if kids see the same word more than once... if so, this item will be ducplicated in the dataset
   left_join(prop_looking_diff_by_subject) %>%
-  # commenting out for now until we verify how to do this one left_join(sampling_fixations_total %>% dplyr::select(-subject_id)) %>%
   left_join(mean_num_fixations_by_subject) %>%
   left_join(prop_shifts_target_initial_by_subject %>% select(-initial_look)) %>%
   left_join(prop_shifts_distractor_initial_by_subject %>% select(-initial_look)) %>%
@@ -518,7 +538,10 @@ data_new_dvs_by_subject <- analysis_dataset_split %>%
   left_join(number_of_switches_by_subject) %>%
   left_join(mean_fixation_dur_by_subject) %>%
   left_join(first_look_duration_by_subject) %>%
-  left_join(mean_longest_look_by_subject) %>%
+  left_join(mean_longest_look_by_subject) %>% 
+  left_join(peak_dilation_by_subject) %>%
+  left_join(mean_dilation_by_subject) %>%
+  left_join(peak_pupil_latency_by_subject) %>%
   ungroup()%>%
   mutate(age_months_centred = age_months - 25)
 
@@ -526,11 +549,11 @@ data_new_dvs_by_subject <- analysis_dataset_split %>%
 #export to later get means, SDs for calculating Cohen's D when dataset is run with the other experimental type
 data_new_dvs_by_subject %>%
   mutate(data_split = j) %>%
-  write_csv(here(paste0("all_variables_datasets/peekbank_by_subject_means_sds_", analysis_type, "_", j, ".csv")))
+  write_csv(here(paste0("all_variables_datasets/archival_by_subject_means_sds_", analysis_type, "_", j, ".csv")))
 
 data_new_dvs_by_trial %>%
   mutate(data_split = j) %>% 
-  write_csv(here(paste0("all_variables_datasets/peekbank_by_trial_means_sds_", analysis_type, "_", j, ".csv")))
+  write_csv(here(paste0("all_variables_datasets/archival_by_trial_means_sds_", analysis_type, "_", j, ".csv")))
 
 
 #How many trials in average when we collapse by subject?
@@ -545,6 +568,8 @@ print_list[[paste(analysis_type, "average number of trials per participant (", j
 #Save datasets to load and use in next section where non-exp and exp are both needed
 # 
 # save(data_new_dvs_by_subject, file = here(paste0("all_variables_datasets/peekbank_bysubject_", analysis_type, "_", j, ".Rda")))
+
+
 
 }
 }

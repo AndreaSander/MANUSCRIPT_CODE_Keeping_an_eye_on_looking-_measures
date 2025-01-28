@@ -1,0 +1,672 @@
+---
+title: "Peekbank"
+output: html_document
+date: "2024-10-23"
+---
+
+```{r setup, include=FALSE}
+
+library(tidyverse)
+library(dbplyr)
+library(tidylog)
+library(here)
+library(Hmisc)
+library(corrplot)
+library(psych)
+
+`%notin%` <- negate(`%in%`)
+
+```
+
+#Combine data
+#### Only need to run this chunk once, or again if something changes in the cleaning scripts
+```{r}
+
+#Only need to run this chunk once, or again if something changes in the cleaning scripts
+
+
+#In order to have the plots from different data sources laid out next to each other how we want, we'll have to put the data all together into large datasets. WARNING: these data frames will have REPEATED ROWS, because they contain all the rows from distractor-initial trials, all the rows from target-initial trials, and then all of those rows again labelled as "all". So do not do any analysis or manipulations without grouping or filtering by the data_split variable!
+
+data_list_by_subject <- list()
+data_list_by_trial <- list()
+
+for (i in c("experimental", "non-experimental")) {
+  for (j in c("target", "distractor", "all")) {
+    #get anon_archival
+    data_new_dvs_by_subject_arch <- read_csv(here(paste0(
+      "all_variables_datasets/archival_by_subject_means_sds_", 
+                                                    i, "_", j, ".csv")))
+    data_new_dvs_by_trial_arch <- read_csv(here(paste0(
+      "all_variables_datasets/archival_by_trial_means_sds_", 
+                                                  i, "_", j, ".csv")))
+    
+    #get peekbank
+    data_new_dvs_by_subject_pb <- read_csv(here(paste0(
+      "all_variables_datasets/peekbank_by_subject_means_sds_", 
+                                                    i, "_", j, ".csv")))
+    data_new_dvs_by_trial_pb <- read_csv(here(paste0(
+      "all_variables_datasets/peekbank_by_trial_means_sds_", 
+                                                  i, "_", j, ".csv")))
+    #bind together
+    
+    #by subject
+    data_by_subject <- data_new_dvs_by_subject_arch %>%
+      mutate(data_source = "archival",
+             exp_type = i) %>%
+      bind_rows(data_new_dvs_by_subject_pb %>% mutate(data_source = "peekbank", exp_type = i))
+    #by trial
+    data_by_trial <- data_new_dvs_by_trial_arch %>%
+      mutate(data_source = "archival",
+             exp_type = i) %>%
+      bind_rows(data_new_dvs_by_trial_pb %>% mutate(data_source = "peekbank", exp_type = i))
+    
+    #add to list
+    data_list_by_subject[paste0(i, "_", j)] <- list(data_by_subject)
+    data_list_by_trial[paste0(i, "_", j)] <- list(data_by_trial)
+    
+  }
+}
+
+bind_rows(data_list_by_subject, .id = "data_split_id") %>% 
+  write_csv(here(paste0("all_variables_datasets/combined_datasets/by_subject.csv")))
+
+bind_rows(data_list_by_trial, .id = "data_split_id") %>% 
+  write_csv(here(paste0("all_variables_datasets/combined_datasets/by_trial.csv")))
+
+
+```
+
+
+#Get data
+
+```{r}
+data_by_subject <- read_csv(here(paste0("all_variables_datasets/combined_datasets/by_subject.csv")))
+data_by_trial <- read_csv(here(paste0("all_variables_datasets/combined_datasets/by_trial.csv")))
+print_list <- list()
+
+```
+
+#Correlations
+```{r}
+
+#-------------------------------------------------------------Analysis steps begin here
+
+#dplyr::select only numerical variables for correlation
+
+#PEARSON CORRELATION
+for_correlation_with_age <- data_by_subject %>%
+  dplyr::select(-(starts_with("sd")), -(starts_with("n_trials")), -(ends_with("centred")), -subject_id, -contains("exp")) %>%
+  dplyr::select(where(is.numeric), data_split_id, data_source) %>%
+  split(f = paste0(.$data_split_id, "_", .$data_source))
+
+
+cor_matrices_pearson <- list()
+not_all_na <- function(x) any(!is.na(x))
+
+for (i in 1:length(for_correlation_with_age)) {
+  data <- for_correlation_with_age[[i]] %>%
+    select(where(is.numeric)) %>%
+    select_if(not_all_na)
+  element <- names(for_correlation_with_age[i])
+  cor_matrix <- cor(x=data, use="pairwise.complete.obs")
+  cor_matrices_pearson[paste0(element)] <- list(cor_matrix)
+}
+
+# Extract p-values
+
+p_values <- list()
+not_all_na <- function(x) any(!is.na(x))
+
+for (i in 1:length(for_correlation_with_age)) {
+  data <- for_correlation_with_age[[i]] %>%
+    select(where(is.numeric)) %>%
+    select_if(not_all_na)
+  element <- names(for_correlation_with_age[i])
+  cor_matrix <- rcorr(x=as.matrix(data))$P
+  p_values[paste0(element)] <- list(cor_matrix)
+} 
+
+
+#adjust for multiple comparisons
+
+p_values_adjusted <- list()
+
+for (i in 1:length(p_values)) {
+  element <- names(p_values[i])
+  # Flatten the matrix to adjust p-values
+  p_values_flat <- as.vector(p_values[[i]])
+  # Adjust p-values using Bonferroni correction
+  p_values_adj <- p.adjust(p_values_flat, method = "bonferroni")
+  # Convert the adjusted p-values back to a matrix
+  p_values_adj_matrix <- matrix(p_values_adj, ncol = ncol(p_values[[i]]))
+  p_values_adjusted[paste0(element)] <- list(p_values_adj_matrix)
+} 
+
+
+#plotting the correlations
+
+#Change column and row names to look nicer on plot in real words
+
+better_names <- data.frame(
+  old_name = c("age_months", "exp_to_target_lang", "fre_exp", "eng_exp", "mean_prop_looking", "mean_prop_looking_diff", "mean_number_fixations", "mean_prop_shift_target_initial", "mean_prop_shift_distractor_initial", "mean_RT", "total_aoi_switches", "mean_duration_of_look", "mean_first_look_dur", "mean_longest_look", "mean_peak_pupil_size_difference", "mean_mean_pupil_size_difference", "mean_peak_pupil_latency"),
+  new_name = c("Age in months", "Target language exposure", "French exposure", "English exposure", "Proportion looking", "Proportion looking difference", "Total number of fixations", "Proportion trials staying on target", "Proportion trials shifting to target", "Reaction time", "Total number of AOI switches", "Mean duration of looks", "Mean duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency"))
+
+# Create a lookup vector from the IDs/Names dataframe
+lookup_names <- better_names$new_name
+names(lookup_names) <- better_names$old_name
+
+for (i in 1:length(cor_matrices_pearson)) {
+  element <- names(cor_matrices_pearson[i])
+  matrix <- cor_matrices_pearson[[i]]
+  colnames(matrix) <- lookup_names[colnames(matrix)]
+  rownames(matrix) <- lookup_names[rownames(matrix)]
+  cor_matrices_pearson[paste0(element)] <- list(matrix)
+}
+
+
+print_list[[paste("Pearson Correlations")]] <- cor_matrices_pearson
+
+
+#--------------------------------Plots
+
+corr_plots_row1 <- purrr::imap(
+  #get experimental datasets and remove axis text
+  cor_matrices_pearson[str_detect(names(cor_matrices_pearson), "^experimental_all")], 
+  ~ ggcorrplot::ggcorrplot(.x, 
+                           method = "circle",
+                           #type = "lower",
+                           colors = c("#276419", "white", "#8E0152"),
+                           ggtheme = ggplot2::theme_bw) +
+    ggtitle(paste0(str_to_title(str_replace_all(str_replace(.y, "_all", ""),  "_", ", ")))) +
+  theme(plot.title = element_text(hjust = 1),
+        axis.text.x = element_blank()))
+
+corr_plots_row2 <- purrr::imap(
+  #get non-experimental ones
+  cor_matrices_pearson[str_detect(names(cor_matrices_pearson), "non-experimental_all")], 
+  ~ ggcorrplot::ggcorrplot(.x, 
+                           method = "circle",
+                           #type = "lower",
+                           colors = c("#276419", "white", "#8E0152"),
+                           ggtheme = ggplot2::theme_bw) +
+    ggtitle(paste0(str_to_title(str_replace_all(str_replace(.y, "_all", ""),  "_", ", ")))) +
+  theme(plot.title = element_text(hjust = 1)))
+
+
+#function to plot from a list of plots using patchwork
+plot_a_list <- function(master_list_with_plots, no_of_rows, no_of_cols) {
+
+  patchwork::wrap_plots(master_list_with_plots, 
+                        nrow = no_of_rows, ncol = no_of_cols)
+}
+
+#Plots
+plot_a_list(c(corr_plots_row1, corr_plots_row2), 2, 2) +
+  patchwork::plot_layout(guides = 'collect') 
+
+ggsave(here::here(paste0("figures/correlation_plots.png")), width = 8, height = 8)
+
+
+#SPEARMAN CORRELATION
+
+cor_matrices_spearman <- list()
+
+for (i in 1:length(for_correlation_with_age)) {
+  data <- for_correlation_with_age[[i]] %>%
+    select(where(is.numeric)) %>%
+    select_if(not_all_na)
+  element <- names(for_correlation_with_age[i])
+  cor_matrix <- cor(x=data, use="pairwise.complete.obs", method = "spearman")
+  cor_matrices_spearman[paste0(element)] <- list(cor_matrix)
+}
+
+corr_plots_spear_row1 <- purrr::imap(
+  #get experimental datasets and remove axis text
+  cor_matrices_spearman[str_detect(names(cor_matrices_pearson), "^experimental_all")], 
+  ~ ggcorrplot::ggcorrplot(.x, 
+                           method = "circle",
+                           type = "lower",
+                           colors = c("#276419", "white", "#8E0152"),
+                           ggtheme = ggplot2::theme_bw) +
+    ggtitle(paste0(str_to_title(str_replace_all(str_replace(.y, "_all", ""),  "_", ", ")))) +
+  theme(plot.title = element_text(hjust = 1),
+        axis.text.x = element_blank()))
+
+corr_plots_spear_row2 <- purrr::imap(
+  #get non-experimental ones
+  cor_matrices_spearman[str_detect(names(cor_matrices_pearson), "non-experimental_all")], 
+  ~ ggcorrplot::ggcorrplot(.x, 
+                           method = "circle",
+                           type = "lower",
+                           colors = c("#276419", "white", "#8E0152"),
+                           ggtheme = ggplot2::theme_bw) +
+    ggtitle(paste0(str_to_title(str_replace_all(str_replace(.y, "_all", ""),  "_", ", ")))) +
+  theme(plot.title = element_text(hjust = 1)))
+
+#Plots
+plot_a_list(c(corr_plots_spear_row1, corr_plots_spear_row2), 2, 2) +
+  patchwork::plot_layout(guides = 'collect') 
+
+print_list[[paste("Spearman Correlations:")]] <- cor_matrices_spearman
+
+
+```
+
+#Factor Analysis  
+```{r}
+
+#------------------------------------------Factor analysis
+
+#------------------------Get relevant rows and columns for data
+
+#------------All variables except age
+for_factor_analysis <- list()
+
+for (i in 1:length(cor_matrices_pearson)) {
+  data <- cor_matrices_pearson[[i]] 
+  element <- names(cor_matrices_pearson[i])
+  data <- data[!rownames(data) %in% c("Age in months"), !colnames(data) %in% c("Age in months")]
+  for_factor_analysis[paste0(element)] <- list(data)
+}
+
+#------------All variables except age and the ones requiring distractor-initial or target-initial looks
+for_factor_analysis_noshift <- list()
+
+for (i in 1:length(cor_matrices_pearson)) {
+  data <- cor_matrices_pearson[[i]] 
+  element <- names(cor_matrices_pearson[i])
+  data <- data[!rownames(data) %in% c("Age in months", "Proportion trials staying on target", "Proportion trials shifting to target"), !colnames(data) %in% c("Age in months", "Proportion trials staying on target", "Proportion trials shifting to target")]
+  for_factor_analysis_noshift[paste0(element)] <- list(data)
+}
+
+
+#------------------------check how many factors we should use
+
+eigenvalue_plots <- list()
+
+for (i in 1:length(for_factor_analysis)) {
+  data <- for_factor_analysis[[i]] 
+  element <- names(for_factor_analysis[i])
+  #We are sticking with ss loads above 1 so that leaves us with 2 factors.
+  scree = data.frame(factor_s = 1:ncol(data), eigenvalue = eigen(data)$values)
+  screeplot <- ggplot(scree, aes(x=factor_n, y = eigenvalue)) +
+                geom_point() +
+                geom_line() +
+                geom_hline(yintercept=1,color = "red") +
+                xlab("# factors") +
+                ylab("eigenvalue") +
+                ggtitle(paste("Scree Plot", element))
+  eigenvalue_plots[paste0(element)] <- list(screeplot)
+}
+
+plot_a_list(eigenvalue_plots, 3, 4) +
+  patchwork::plot_layout(guides = 'collect') 
+
+#With all variables
+factor_analyses <- list()
+
+for (i in 1:length(for_factor_analysis)) {
+  data <- for_factor_analysis[[i]] %>%
+    as_tibble() %>% 
+    dplyr::select(where(is.numeric)) %>%
+    select_if(not_all_na) %>%
+    as.matrix()
+  rownames(data) <- colnames(data)
+  element <- names(for_factor_analysis[i])
+  #We are sticking with ss loads above 1 so that leaves us with 2 factors.
+  fct_ana <- psych::fac(data, nfactors = 2)
+  factor_analyses[paste0(element)] <- list(fct_ana)
+}
+
+#Without shifting variables
+#Mention in a write up that without the distractor-only trials the factors are quite similar so we are quite confident it is not an artifact.
+factor_analyses_noshift <- list()
+
+for (i in 1:length(for_factor_analysis_noshift)) {
+  data <- for_factor_analysis_noshift[[i]] %>%
+    as_tibble() %>% 
+    dplyr::select(where(is.numeric)) %>%
+    select_if(not_all_na) %>%
+    as.matrix()
+  rownames(data) <- colnames(data)
+  element <- names(for_factor_analysis_noshift[i])
+  #We are sticking with ss loads above 1 so that leaves us with 2 factors.
+  fct_ana <- psych::fac(data, nfactors = 2)
+  factor_analyses_noshift[paste0(element)] <- list(fct_ana)
+}
+
+
+#Proportion looking tends to be good because it considers both distractor initial and target initial trials. But there are other variables like number of fixations that might be good but just for certain types of trials e.g. target initial.
+
+#Pupil is cool as a measure of surprise if they are looking at the wrong thing (distractor initial) but not during target initial trials.
+
+#We want to ultimately give reccomendations. Is there a measure that's more robust, best for manipulations, if it only works for a type of trial, like target initial you are halving your data, so is that best? We might run reliability measures by child by trial.
+
+```
+
+#ICC
+```{r}
+#--------------------------------------ICC
+
+data_by_trial_split <- data_by_trial %>%
+  split(f = paste0(.$data_split_id, "_", .$data_source))
+
+possible_columns <- c("prop_looking", "prop_looking_diff", "number_fixations", "correct_shift", "remain_on_target", "latency_to_switch", "total_aoi_switches", "duration_of_look", "first_look_dur", "longest_look", "peak_pupil_size_difference", "mean_pupil_size_difference", "peak_pupil_latency")
+  
+  #HK note: below I have calculated the ICC for all variables with the same code chunk, however, when it runs, we are getting quite a few singular fit warnings
+
+iccs <- list()
+
+for (i in 1:length(data_by_trial_split)) {
+  #For some reason I can't figure out, this fails on the Garrison Bergelson dataset for the first_look_dur variable for the non-experimental, distractor-initial split. I think it might be because there are only 5 kids with any data for this variable, and it looks like they all only have 1 value for it. So, removing that split here to make this part run.
+  if (i == 10) {
+    remove_dataset <- "garrison_bergelson_2020"
+    remove_variable <- "first_look_dur"
+  } else {
+    remove_dataset <- "none"
+    remove_variable <- "none"
+  }
+  icc <- data_by_trial_split[[i]] %>%
+    dplyr::select(c(recording_name, dataset_name, any_of(possible_columns))) %>%
+    janitor::remove_empty() %>%
+    pivot_longer(3:ncol(.), names_to = "variable", values_to = "response") %>%
+    filter(!(dataset_name == remove_dataset & variable == remove_variable)) %>%
+    group_by(recording_name, variable) %>%
+    mutate(ntrial = row_number()) %>%
+    pivot_wider(names_from = ntrial, values_from = response) %>%
+  ungroup() %>%
+    filter(if_any(4:ncol(.), complete.cases)) %>% #drop rows with all NAs (some studies don't have info for prop looking difference)
+    group_by(dataset_name, variable) %>%
+    group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[sapply(.x, is.numeric)], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
+    unnest(icc)
+  element <- names(for_factor_analysis_noshift[i])
+  iccs[paste0(element)] <- list(icc)
+}
+
+print_list[[paste("ICC:")]] <- iccs
+
+
+icc_means <- list()
+
+for (i in 1:length(iccs)) {
+  data <- iccs[[i]] %>%
+  mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              variable == "duration_of_look" ~ "Mean duration of looks",
+                              variable == "correct_shift" ~ "Proportion trials shifting to target",
+                              variable == "remain_on_target" ~ "Proportion trials staying on target",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  group_by(variable) %>%
+  dplyr::summarize(ICC= mean(ICC))
+  element <- names(iccs[i])
+  icc_means[paste0(element)] <- list(data)
+}
+  
+
+print_list[[paste("ICC:")]] <- icc_means
+
+icc_plots <- list()
+
+for (i in 1:length(iccs)) {
+  data1 <- iccs[[i]] 
+  data2 <- icc_means[[i]]
+  element <- names(iccs[i])
+  plot <- data1 %>%
+    mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              variable == "duration_of_look" ~ "Mean duration of looks",
+                              variable == "correct_shift" ~ "Proportion trials shifting to target",
+                              variable == "remain_on_target" ~ "Proportion trials staying on target",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  ggplot(aes(x = ICC, y = variable, color = dataset_name)) +
+  geom_point(size=3, alpha = .75)+
+  #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
+  geom_point(data = data2, aes(x = ICC, y = variable), shape = 18, size = 4, color = "black") +
+  labs(x = "ICC",
+       y = "Variable",
+       title = paste0("Distribution of ICC across variables and studies\n(", snakecase::to_sentence_case(element), ")"),
+       color = "Dataset") +
+  theme_minimal()+
+  theme(plot.background = element_rect(fill = "white")) +
+  scale_x_continuous(limits = c(0,1))
+  ggsave(here::here(paste0("figures/icc_plot_", element, ".png")),
+         width = 8,
+         height = 8)
+  icc_plots[paste0(element)] <- list(plot)
+  
+}
+
+plot_a_list(icc_plots, 3, 4) +
+  patchwork::plot_layout(guides = 'collect') 
+
+```
+
+#Models
+
+```{r}
+
+#HK note.... all these models have lang exposure as a factor.... not sure how to make them comparable to our dataset models without that variable
+
+data_by_subject_long_split <- data_by_subject %>%
+  filter(data_split == "all") %>%
+  dplyr::select(data_split_id, data_source, dataset_name, subject_id, age_months, age_months_centred, exp_to_target_lang, eng_exp, fre_exp, starts_with("mean")) %>%
+  pivot_longer(10:ncol(.), names_to = "variable", values_to = "response") %>%
+  split(f = paste0(.$data_split_id, "_", .$data_source, "_", .$variable))
+
+list_levels_1 <- unique(str_extract(str_replace(names(data_by_subject_long_split), "mean_mean", "mean"), ".*(?=_mean)"))
+list_levels_2 <- c("simple", "inter")
+
+#create list structure to house models and model summaries
+#------------models
+models <- list()
+models[list_levels_1] <- list(NULL)
+
+list_levels_2 <- list(simple = NULL,
+                      inter = NULL)
+
+for (i in 1:length(models)) {
+  models[[i]] <- list_levels_2
+}
+#------------model summaries
+model_summaries <- list()
+model_summaries[list_levels_1] <- list(NULL)
+
+for (i in 1:length(model_summaries)) {
+  model_summaries[[i]] <- list_levels_2
+}
+#------------plots
+inter_plots <- list()
+
+for (i in 1:length(data_by_subject_long_split)) {
+  data <- data_by_subject_long_split[[i]] 
+  element <- str_extract(str_replace(names(data_by_subject_long_split[i]), "mean_mean", "mean"), ".*(?=_mean)")
+  var_name <- unique(data$variable)
+  
+  #Skip the loop for variables that area all NA (like the pupil ones in the peekbank data)
+  if (sjmisc::all_na(data$response)) {
+    next
+  } else {
+    
+    #For archival data only, include lang exposure
+    if (str_detect(element, "archival")) {
+      
+        data$exp_to_target_lang_centred <- (data$exp_to_target_lang/100)-.5
+        #Simple model
+        simple_mod <- lm(response ~ age_months_centred + exp_to_target_lang_centred,  
+                                  data = data)
+        simple_mod_sum <- summary(simple_mod)
+        #Interaction model
+        inter_mod <- lm(response ~ age_months_centred*exp_to_target_lang_centred,
+                                    data = data)
+        inter_mod_sum <- summary(inter_mod)
+        #interaction plot
+        inter_plot <- interactions::interact_plot(inter_mod, pred= exp_to_target_lang_centred, modx=age_months_centred, plot.points = T) + 
+          ggtitle(str_replace(element, "all_archival_", "archival\n")) + 
+          theme(plot.background = element_rect(colour = "grey", fill=NA))
+        
+        add_simple <- list(simple_mod)
+        names(add_simple) <- var_name
+        models[[paste0(element)]]$simple <- c(models[[paste0(element)]]$simple, add_simple)
+        
+        add_inter = list(inter_mod)
+        names(add_inter) <- var_name
+        models[[paste0(element)]]$inter <- c(models[[paste0(element)]]$inter, add_inter)
+        
+        add_simple_sum = list(simple_mod_sum)
+        names(add_simple_sum) <- var_name
+        model_summaries[[paste0(element)]]$simple <- c(model_summaries[[paste0(element)]]$simple, add_simple_sum)
+        
+        add_inter_sum = list(inter_mod_sum)
+        names(add_inter_sum) <- var_name
+        model_summaries[[paste0(element)]]$inter <- c(model_summaries[[paste0(element)]]$inter, add_inter_sum)
+        
+        inter_plots[paste0(element)] <- list(inter_plot)
+    } else {
+        #Simple model with only age
+        add_simple = list(simple_mod)
+        names(add_simple) <- var_name
+        models[[paste0(element)]]$simple <- c(models[[paste0(element)]]$simple, add_simple)
+        
+        add_simple_sum = list(simple_mod_sum)
+        names(add_simple_sum) <- var_name
+        model_summaries[[paste0(element)]]$simple <- c(model_summaries[[paste0(element)]]$simple, add_simple_sum)
+    }
+  }
+}
+
+plot_a_list(inter_plots, 6, 4) +
+  patchwork::plot_layout(guides = 'collect') 
+ggsave(here("figures/interaction_plots.png"), height = 25, width = 20)
+
+mod_comparisons_simple <- list()
+mod_comparisons_inter <- list()
+## Contrasting model performance
+for (i in 1:length(models)) {
+  level <- names(models)[i]
+  compare_simple <- performance::compare_performance(models[[i]]$simple)
+  mod_comparisons_simple[[paste0(level)]] <- compare_simple
+  if(str_detect(level, "archival")) {
+    compare_inter <- performance::compare_performance(models[[i]]$simple)
+    mod_comparisons_inter[[paste0(level)]] <- compare_inter
+  }
+  
+}
+
+print_list[[paste("Model comparisons - simple models")]] <- mod_comparisons_simple
+print_list[[paste("Model comparisons - interaction models")]] <- mod_comparisons_inter
+
+```
+
+#Cohen's D
+```{r}
+
+#-------------------------------------------------------------Cohen's D's
+
+experimental_means_sds <- data_by_subject %>%
+  filter(exp_type == "experimental") %>%
+  dplyr::select(-contains("exp"), -data_split_id)
+non_experimental_means_sds <- data_by_subject %>%
+  filter(exp_type == "non-experimental") %>% 
+  dplyr::select(-contains("exp"), -data_split_id)
+
+for_cohens_d <- experimental_means_sds %>%
+  inner_join(non_experimental_means_sds, by=c("data_source", "recording_name", "subject_id", "dataset_name", "age_months", "age_months_centred", "data_split"),
+             suffix = c("_exper", "_nonexper"))
+
+#establish a critical value for alfa = 0.05 to later calculate 95% confidence intervals
+
+crit_value<- qnorm(1-((0.05)/(2)))
+
+#---------------------------------------HK note: make data long with column indicating analysis dataset type (experimental versus non), one column for means, one for SDs, then can calculate Cohen's D by row for each variable type. Put both means SDs dataframes into one dataframe.
+experimental_means_sds_long <- experimental_means_sds %>%
+  rename(mean_total_aoi_switches = total_aoi_switches) %>%
+  pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches") #HK note: I don't remember exactly why we removed this, but there is no SD for this variable in the csv files we read in for the Cohen's D stuff so if we want to include it, we'll have to remake those I think
+non_experimental_means_sds_long <- non_experimental_means_sds %>%
+  rename(mean_total_aoi_switches = total_aoi_switches) %>%
+ pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
+  separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  mutate(var_type = paste0("non_experimental_", var_type)) %>%
+  pivot_wider(names_from = "var_type", values_from = "value") %>%
+  filter(variable != "total_aoi_switches")
+
+cohens_ds <- experimental_means_sds_long %>%
+  inner_join(non_experimental_means_sds_long %>% dplyr::select(dataset_name, recording_name, age_months, data_split, data_source, variable, contains("_mean"), contains("_sd"), contains("_n_trials"))) %>%
+  mutate(pooled_sd = sqrt(((non_experimental_n_trials - 1) * non_experimental_sd^2 + (experimental_n_trials - 1) * experimental_sd^2) / (non_experimental_n_trials + experimental_n_trials - 2)),
+         cohens_d = (non_experimental_mean - experimental_mean) / pooled_sd)
+
+#These kids are in the experimental dataset but not the non-experimental one, so cannot calculate Cohen's D:
+experimental_means_sds %>% filter(recording_name %notin% non_experimental_means_sds$recording_name) %>% count(recording_name)
+#These kids are in the non-experimental dataset but not the experimental one, so cannot calculate Cohen's D:
+non_experimental_means_sds %>% filter(recording_name %notin% experimental_means_sds$recording_name) %>% count(recording_name)
+
+cohens_ds_all_variables <- cohens_ds %>% 
+  group_by(dataset_name, data_split, data_source, variable) %>% 
+  dplyr::summarize(n_experimental = sum(!is.na(experimental_mean)),
+                   n_non_experimental = sum(!is.na(non_experimental_mean)), 
+                   experimental_means= mean(experimental_mean, na.rm=T),
+                   non_experimental_means= mean(non_experimental_mean, na.rm=T),
+                   experimental_sd= sd(experimental_mean, na.rm=T),
+                   non_experimental_sd= sd(non_experimental_mean, na.rm=T)) %>% 
+  rename(experimental_mean = experimental_means, 
+         non_experimental_mean = non_experimental_means) %>%
+  mutate(pooled_sd = sqrt((((n_experimental-1)*(experimental_sd^2))+((n_non_experimental-1)*(non_experimental_sd^2)))/((n_experimental+n_non_experimental)-2))) %>%
+  mutate(cohen_d = (experimental_mean-non_experimental_mean)/pooled_sd) %>%
+  mutate(SE=sqrt(((n_experimental+n_non_experimental)/(n_experimental*n_non_experimental))+
+                        ((cohen_d^2)/(2*(n_experimental+n_non_experimental))))) %>%
+  mutate(CI_lower = (cohen_d-(crit_value*SE))) %>%
+  mutate(CI_upper = (cohen_d+(crit_value*SE))) %>% 
+  ungroup() %>%
+  mutate(across(c(cohen_d, CI_lower, CI_upper), abs)) %>%
+  filter(!is.nan(experimental_mean) & !is.nan(non_experimental_mean))
+
+# #Create cohen's d visualization
+ 
+cohens_ds_across_studies_mean<- cohens_ds_all_variables %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_distractor_initial" ~ "Proportion trials shifting to target",
+                              variable == "prop_shift_target_initial" ~ "Proportion trials staying on target",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  group_by(variable, data_split, data_source) %>%
+  dplyr::summarize(cohen_d= abs(mean(cohen_d, na.rm = T))) 
+
+cohens_ds_all_variables %>%
+  mutate(variable = case_when(variable == "RT" ~ "Reaction time",
+                              variable == "first_look_dur" ~ "First look duration",
+                              variable == "prop_shift_distractor_initial" ~ "Proportion trials shifting to target",
+                              variable == "prop_shift_target_initial" ~ "Proportion trials staying on target",
+                              TRUE ~ snakecase::to_sentence_case(variable))) %>%
+  ggplot(aes(x = cohen_d, y = variable, color = dataset_name)) +
+  geom_point(size=3, alpha = .75)+
+  #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
+  geom_point(data = cohens_ds_across_studies_mean, aes(x = cohen_d, y = variable), shape = 18, size = 4, color = "black", alpha = .75) +
+  facet_grid(data_split ~ data_source) +
+  labs(x = "Cohen's D",
+       y = "Variable",
+       title = "Distribution of Cohen's D across variables and studies",
+       color = "Study") +
+  theme_minimal()+
+  theme(plot.background = element_rect(fill = "white"),
+        panel.spacing = unit(2, "lines")) +
+  scale_x_continuous(limits = c(0,1))
+  
+ggsave(here::here(paste0("figures/cohens_d_plot.png")), height = 8, width = 10)
+
+
+```
+
+
+
+
+
+```{r}
+#Save the print_list to a text file
+
+sink(here(paste0("beyond_looks_analyses/", analysis_type, "_code_printout.txt"))); print(print_list); sink()
+
+```
+

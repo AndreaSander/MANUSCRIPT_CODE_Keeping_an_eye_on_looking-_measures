@@ -74,12 +74,12 @@ trackloss_cleaned <- analysis_data %>%
          trackloss_cutoff = case_when(trackloss_pct <.5 ~ "keep",
                                       trackloss_pct >= .5 ~ "exclude")) %>%
   ungroup() %>%
-  distinct(recording_name, trial_number, trackloss_pct, trackloss_cutoff) %>%
+  distinct(recording_name, subject_id, trial_number, trackloss_pct, trackloss_cutoff) %>%
   filter(trackloss_cutoff == "keep") %>%
   group_by(recording_name) %>%
   mutate(n_valid_trials_subject = n()) %>%
   ungroup() %>%
-  dplyr::select(recording_name, trial_number, trackloss_pct, n_valid_trials_subject)
+  dplyr::select(recording_name, subject_id, trial_number, trackloss_pct, n_valid_trials_subject)
 
 n_subjects_after_trackloss_exclusion <- n_distinct(trackloss_cleaned$recording_name)
   
@@ -134,7 +134,7 @@ prop_looking_by_trial <- analysis_dataset %>%
   ungroup()
 
 prop_looking_by_subject <- prop_looking_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_prop_looking = mean(prop_looking),
             sd_prop_looking = sd(prop_looking),
             n_trials_prop_looking = length(unique(trial_number))) %>%
@@ -146,22 +146,22 @@ prop_looking_by_subject <- prop_looking_by_trial %>%
 prop_looking_diff_by_item <- analysis_dataset %>%
   ungroup()%>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  dplyr::select(recording_name, recording_timestamp, target_word, distractor_word, target, distractor)%>%
+  dplyr::select(recording_name, subject_id, recording_timestamp, target_word, distractor_word, target, distractor)%>%
   pivot_longer(c(target_word, distractor_word), names_to = "word_type", values_to = "word") %>%
   mutate(looking = case_when(word_type == "target_word" & target == TRUE ~ TRUE,
                              word_type == "distractor_word" & distractor == TRUE ~ TRUE,
                              TRUE ~ FALSE)) %>%
-  group_by(recording_name, word_type, word) %>%
+  group_by(recording_name, subject_id, word_type, word) %>%
   #what percent of the time when x is target are kids looking at x, what percent of the time when x is distractor are kids looking at x
   summarise(prop_looking = sum(looking == T, na.rm = T)/n()) %>%
   pivot_wider(names_from = "word_type", values_from = "prop_looking") %>%
   filter(!is.na(target_word) & !is.na(distractor_word)) %>%
   mutate(prop_looking_diff = target_word - distractor_word) %>%
-  dplyr::select(recording_name, target_word = word, prop_looking_diff) %>%
+  dplyr::select(recording_name, subject_id, target_word = word, prop_looking_diff) %>%
   ungroup() 
 
 prop_looking_diff_by_subject <- prop_looking_diff_by_item %>%  
-  group_by(recording_name) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
+  group_by(recording_name, subject_id) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
   summarise(mean_prop_looking_diff = mean(prop_looking_diff),
             sd_prop_looking_diff = sd(prop_looking_diff),
             n_trials_prop_looking_diff = length(unique(target_word))) %>%
@@ -235,14 +235,14 @@ fixations_total_by_trial <- analysis_dataset %>%
   filter(n() >= 12) %>%
   #filter to target fixations
   filter(target == TRUE) %>%
-  distinct(recording_name, trial_number, looking_stretch_id, initial_look) %>%
-  group_by(recording_name, trial_number, initial_look) %>%
+  distinct(recording_name, subject_id, trial_number, looking_stretch_id, initial_look) %>%
+  group_by(recording_name, subject_id, trial_number, initial_look) %>%
   summarise(number_fixations = n()) %>%
   ungroup()
 
 #before, this was just counting number of fixations... changed to mean number fixations per trial per child
 mean_num_fixations_by_subject <- fixations_total_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_number_fixations = mean(number_fixations),
             sd_number_fixations = sd(number_fixations),
             n_trials_number_fixations = length(unique(trial_number))) %>%
@@ -270,7 +270,7 @@ prop_shifts_distractor_initial_by_trial <- first_shift_target %>%
     filter(initial_look == "distractor") 
 
 prop_shifts_distractor_initial_by_subject <- prop_shifts_distractor_initial_by_trial %>%
-  group_by(recording_name, initial_look) %>%
+  group_by(recording_name, subject_id, initial_look) %>%
     summarise(prop_shift_distractor_initial = sum(correct_shift == TRUE)/n(),
               sd_prop_shift_distractor_initial = sd(as.numeric(correct_shift)),
             n_trials_prop_shift_distractor_initial = length(unique(trial_number))) #some SDs are NA because the child only has one row, and no standard deviation can be calculated from one value
@@ -299,10 +299,10 @@ RT_by_trial <- analysis_dataset %>%
   slice_head() %>%
   mutate(latency_to_switch = noun_onset - 360) %>%
   ungroup() %>%
-  dplyr::select(recording_name, trial_number, latency_to_switch, initial_look) 
+  dplyr::select(recording_name, subject_id, trial_number, latency_to_switch, initial_look) 
 
 RT_by_subject <- RT_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_RT = mean(latency_to_switch, na.rm = T),
             sd_RT = sd(latency_to_switch, na.rm = T),
             n_trials_RT = length(unique(trial_number))) %>%
@@ -329,12 +329,12 @@ number_of_switches_by_trial <- analysis_dataset %>%
   group_by(recording_name, trial_number) %>%
   mutate(AOI_switches = case_when(lag(where_looking) == "target" & where_looking == "distractor" ~ 1,
                             lag(where_looking) == "distractor" & where_looking == "target" ~ 1)) %>%
-  group_by(recording_name, trial_number, initial_look) %>%
+  group_by(recording_name, subject_id, trial_number, initial_look) %>%
   summarise(total_aoi_switches = sum(AOI_switches, na.rm = T)) %>%
   ungroup()
 
 number_of_switches_by_subject <- number_of_switches_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(total_aoi_switches = sum(total_aoi_switches, na.rm = T),
             n_trials_total_aoi_switches = length(unique(trial_number))) %>%
   ungroup()
@@ -428,15 +428,15 @@ mean_fixation_dur_by_trial <- analysis_dataset %>%
   #filter to fixations of at least 12 rows or ~ 200 ms
   filter(n() >= 12) %>%
   filter(target == TRUE) %>%
-  group_by(recording_name, trial_number, media_name, looking_stretch_id, initial_look) %>%
+  group_by(recording_name,subject_id,  trial_number, media_name, looking_stretch_id, initial_look) %>%
   summarise(length_of_looks = n()) %>%
   mutate(duration_of_look = length_of_looks*(1000/60)) %>%
-  group_by(recording_name, trial_number, initial_look) %>%
+  group_by(recording_name, subject_id, trial_number, initial_look) %>%
   summarise(duration_of_look = mean(duration_of_look, na.rm = T)) %>%
   ungroup()
 
 mean_fixation_dur_by_subject <- mean_fixation_dur_by_trial %>% 
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_duration_of_look = mean(duration_of_look, na.rm = T),
             sd_duration_of_look = sd(duration_of_look, na.rm = T),
             n_trials_duration_of_look = length(unique(trial_number))) %>%
@@ -610,7 +610,7 @@ mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline
 #Peak dilation
 peak_dilation_by_trial <- pupil_dilation %>%
   ungroup()%>%
-  group_by(trial_number, recording_name, pupil_period, initial_look) %>%
+  group_by(trial_number, recording_name, subject_id, pupil_period, initial_look) %>%
   summarise(peak_pupil = max(two_pupil_mean)) %>%
   pivot_wider(names_from = pupil_period, values_from ="peak_pupil")%>%
   mutate(peak_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
@@ -620,7 +620,7 @@ peak_dilation_by_trial <- pupil_dilation %>%
   ungroup()
 
 peak_dilation_by_subject <- peak_dilation_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_peak_pupil_size_difference = mean(peak_pupil_size_difference),
             sd_peak_pupil_size_difference = sd(peak_pupil_size_difference),
             n_trials_peak_pupil_size_difference = length(unique(trial_number))) %>%
@@ -629,7 +629,7 @@ peak_dilation_by_subject <- peak_dilation_by_trial %>%
 #Mean dilation
 mean_dilation_by_trial <- pupil_dilation %>%
   ungroup()%>%
-  group_by(trial_number, recording_name, pupil_period, initial_look) %>%
+  group_by(trial_number, recording_name, subject_id, pupil_period, initial_look) %>%
   summarise(mean_pupil = mean(two_pupil_mean, na.rm = T)) %>%
   pivot_wider(names_from = pupil_period, values_from ="mean_pupil")%>%
   mutate(mean_pupil_size_difference = post_onset - baseline) %>% #difference in peak pupil points
@@ -639,7 +639,7 @@ mean_dilation_by_trial <- pupil_dilation %>%
   ungroup() 
 
 mean_dilation_by_subject <- mean_dilation_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_mean_pupil_size_difference = mean(mean_pupil_size_difference),
             sd_mean_pupil_size_difference = sd(mean_pupil_size_difference),
             n_trials_mean_pupil_size_difference = length(unique(trial_number))) %>%
@@ -652,13 +652,13 @@ peak_pupil_latency_by_trial <- pupil_dilation %>%
   ungroup()%>%
   group_by(trial_number, recording_name, pupil_period) %>%
   slice(which.max(two_pupil_mean)) %>%
-  dplyr::select(recording_name, pupil_period, peak_time_stamp = recording_timestamp, initial_look) %>%
-  group_by(trial_number, recording_name, initial_look) %>%
+  dplyr::select(recording_name, subject_id, pupil_period, peak_time_stamp = recording_timestamp, initial_look) %>%
+  group_by(trial_number, recording_name, subject_id, initial_look) %>%
   summarise(peak_pupil_latency = diff(peak_time_stamp)) %>%
   ungroup()
 
 peak_pupil_latency_by_subject <- peak_pupil_latency_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_peak_pupil_latency = mean(peak_pupil_latency),
             sd_peak_pupil_latency = sd(peak_pupil_latency),
             n_trials_peak_pupil_latency = length(unique(trial_number)))
@@ -683,11 +683,11 @@ first_look_duration_by_trial <- analysis_dataset %>%
   group_by(trial_number, recording_name) %>%
   filter(looking_stretch_id == min(looking_stretch_id)) %>% 
   ungroup() %>%
-  distinct(recording_name, trial_number, media_name, first_look_dur, initial_look) %>%
+  distinct(recording_name, subject_id, trial_number, media_name, first_look_dur, initial_look) %>%
   ungroup()
 
 first_look_duration_by_subject <- first_look_duration_by_trial %>%
-  group_by(recording_name) %>%
+  group_by(recording_name, subject_id) %>%
   summarise(mean_first_look_dur = mean(first_look_dur, na.rm = T),
             sd_first_look_dur = sd(first_look_dur, na.rm = T),
             n_trials_first_look_dur = length(unique(trial_number))) %>%
@@ -1523,15 +1523,15 @@ exp_icc_all_varaibles <- data_new_dvs_by_trial %>%
   pivot_wider(names_from = ntrial, values_from = response) %>%
 ungroup() %>%
   group_by(study, variable)%>%
-  group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[ ,3:12], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
+  group_modify(~ tibble(icc = as.data.frame(list(ICC(.x[sapply(.x, is.numeric)], missing = FALSE, lmer = TRUE, alpha = 0.05)$results))) %>% filter(icc$type == "ICC3k") %>% mutate(rater_type = "Average_fixed_raters")) %>%
   unnest(icc)
   
 exp_icc_across_studies_mean<- exp_icc_all_varaibles %>%
   mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
                               variable == "first_look_dur" ~ "First look duration",
-                              variable == "duration_of_look" ~ "mean duration of looks",
-                              variable == "correct_shift" ~ "proportion trials shifting to target",
-                              variable == "mean_prop_shift_target_initial" ~ "proportion trials staying on target",
+                              variable == "duration_of_look" ~ "Mean duration of looks",
+                              variable == "correct_shift" ~ "Proportion trials shifting to target",
+                              variable == "mean_prop_shift_target_initial" ~ "Proportion trials staying on target",
                               TRUE ~ snakecase::to_sentence_case(variable))) %>%
   group_by(variable) %>%
   dplyr::summarize(ICC= mean(ICC))

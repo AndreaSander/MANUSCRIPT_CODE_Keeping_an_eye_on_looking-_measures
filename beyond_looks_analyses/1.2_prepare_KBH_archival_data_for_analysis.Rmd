@@ -18,7 +18,7 @@ load(here("archival_KBH_anonimyzed/arch_final_experimental.Rda"))
 
 ```{r clean filler data to be used in analyses}
 
-kbh_data_clean <- arch_final_filler%>%
+kbh_data_clean <- arch_final_fillers%>%
   group_by(studio_project_name, studio_test_name, trial_number, recording_name)%>%
   mutate(trial_from_zero = recording_timestamp-min(recording_timestamp))%>%
   group_by(studio_project_name)%>%
