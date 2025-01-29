@@ -1,0 +1,1794 @@
+$`Models - Experimental, all, archival, simple`
+$`Models - Experimental, all, archival, simple`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-794.8 -279.3   16.3  233.5 1176.2 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1173.211     33.645  34.871   <2e-16 ***
+age_months_centred            8.482      3.942   2.152   0.0331 *  
+exp_to_target_lang_centred -209.007    128.886  -1.622   0.1070    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 383.6 on 146 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.04537,	Adjusted R-squared:  0.03229 
+F-statistic: 3.469 on 2 and 146 DF,  p-value: 0.03374
+
+
+$`Models - Experimental, all, archival, simple`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-932.3 -281.1   13.4  234.3 1149.6 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1181.604     34.188  34.562   <2e-16 ***
+age_months_centred            8.132      4.006   2.030   0.0442 *  
+exp_to_target_lang_centred -277.240    130.967  -2.117   0.0360 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 389.8 on 146 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.05321,	Adjusted R-squared:  0.04024 
+F-statistic: 4.103 on 2 and 146 DF,  p-value: 0.01847
+
+
+$`Models - Experimental, all, archival, simple`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-856.80 -262.58    2.75  214.98 1112.45 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1269.050     33.421  37.972  < 2e-16 ***
+age_months_centred           10.508      3.916   2.683  0.00814 ** 
+exp_to_target_lang_centred -162.299    128.029  -1.268  0.20693    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 381.1 on 146 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.055,	Adjusted R-squared:  0.04206 
+F-statistic: 4.249 on 2 and 146 DF,  p-value: 0.01609
+
+
+$`Models - Experimental, all, archival, simple`$mean_mean_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.246935 -0.054801 -0.003166  0.064735  0.225679 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.0458725  0.0073819   6.214 5.18e-09 ***
+age_months_centred         0.0041011  0.0008644   4.744 4.96e-06 ***
+exp_to_target_lang_centred 0.1228721  0.0284168   4.324 2.83e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.08375 on 145 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.2287,	Adjusted R-squared:  0.218 
+F-statistic: 21.49 on 2 and 145 DF,  p-value: 6.686e-09
+
+
+$`Models - Experimental, all, archival, simple`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.57575 -0.26743 -0.07911  0.23691  0.95770 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1.414575   0.030092  47.009   <2e-16 ***
+age_months_centred         0.009130   0.003526   2.589   0.0106 *  
+exp_to_target_lang_centred 0.223978   0.115275   1.943   0.0539 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3431 on 146 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.07001,	Adjusted R-squared:  0.05727 
+F-statistic: 5.495 on 2 and 146 DF,  p-value: 0.005
+
+
+$`Models - Experimental, all, archival, simple`$mean_peak_pupil_latency
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-239.485  -51.031    0.762   57.193  248.027 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                389.1767     7.8103  49.829  < 2e-16 ***
+age_months_centred           1.1196     0.9146   1.224  0.22286    
+exp_to_target_lang_centred  97.0294    30.0660   3.227  0.00155 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 88.61 on 145 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.07798,	Adjusted R-squared:  0.06526 
+F-statistic: 6.132 on 2 and 145 DF,  p-value: 0.002778
+
+
+$`Models - Experimental, all, archival, simple`$mean_peak_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.237618 -0.070634 -0.007781  0.066843  0.299380 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.103261   0.008944  11.545  < 2e-16 ***
+age_months_centred         0.004325   0.001047   4.130  6.1e-05 ***
+exp_to_target_lang_centred 0.156829   0.034431   4.555  1.1e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1015 on 145 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.2138,	Adjusted R-squared:  0.203 
+F-statistic: 19.72 on 2 and 145 DF,  p-value: 2.664e-08
+
+
+$`Models - Experimental, all, archival, simple`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.47250 -0.07245  0.01094  0.08086  0.53008 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.583667   0.012235  47.704  < 2e-16 ***
+age_months_centred         0.010517   0.001368   7.687 3.05e-12 ***
+exp_to_target_lang_centred 0.005072   0.045896   0.111    0.912    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1297 on 132 degrees of freedom
+  (16 observations deleted due to missingness)
+Multiple R-squared:  0.3093,	Adjusted R-squared:  0.2988 
+F-statistic: 29.55 on 2 and 132 DF,  p-value: 2.481e-11
+
+
+$`Models - Experimental, all, archival, simple`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.60145 -0.15000  0.00758  0.15386  0.54967 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 0.17841    0.02050   8.702 1.09e-14 ***
+age_months_centred          0.01791    0.00239   7.496 8.26e-12 ***
+exp_to_target_lang_centred -0.12236    0.07927  -1.544    0.125    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.22 on 133 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.3052,	Adjusted R-squared:  0.2947 
+F-statistic: 29.21 on 2 and 133 DF,  p-value: 3.057e-11
+
+
+$`Models - Experimental, all, archival, simple`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.77778 -0.13054  0.05046  0.19173  0.46752 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.770784   0.025624  30.080  < 2e-16 ***
+age_months_centred         0.019188   0.002997   6.403 2.11e-09 ***
+exp_to_target_lang_centred 0.261507   0.097958   2.670  0.00849 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2866 on 141 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.2614,	Adjusted R-squared:  0.2509 
+F-statistic: 24.95 on 2 and 141 DF,  p-value: 5.299e-10
+
+
+$`Models - Experimental, all, archival, simple`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.52411 -0.33270 -0.01047  0.21217  0.66793 
+
+Coefficients:
+                             Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 0.4421203  0.0310283  14.249   <2e-16 ***
+age_months_centred          0.0003028  0.0036312   0.083   0.9337    
+exp_to_target_lang_centred -0.2194895  0.1169486  -1.877   0.0627 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3371 on 137 degrees of freedom
+  (11 observations deleted due to missingness)
+Multiple R-squared:  0.02507,	Adjusted R-squared:  0.01083 
+F-statistic: 1.761 on 2 and 137 DF,  p-value: 0.1757
+
+
+$`Models - Experimental, all, archival, simple`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+
+$`Models - Experimental, all, archival, interaction`
+$`Models - Experimental, all, archival, interaction`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-833.12 -268.05   31.72  240.03 1144.98 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1172.555     33.711  34.783   <2e-16 ***
+age_months_centred                               8.654      3.956   2.188   0.0303 *  
+exp_to_target_lang_centred                    -205.417    129.187  -1.590   0.1140    
+age_months_centred:exp_to_target_lang_centred   14.944     20.468   0.730   0.4665    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 384.2 on 145 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.04886,	Adjusted R-squared:  0.02918 
+F-statistic: 2.483 on 3 and 145 DF,  p-value: 0.06324
+
+
+$`Models - Experimental, all, archival, interaction`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-970.41 -266.27   14.59  231.22 1106.79 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1180.550     34.160  34.560   <2e-16 ***
+age_months_centred                               8.408      4.008   2.097   0.0377 *  
+exp_to_target_lang_centred                    -271.468    130.908  -2.074   0.0399 *  
+age_months_centred:exp_to_target_lang_centred   24.028     20.740   1.158   0.2486    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 389.4 on 145 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.0619,	Adjusted R-squared:  0.04249 
+F-statistic: 3.189 on 3 and 145 DF,  p-value: 0.0256
+
+
+$`Models - Experimental, all, archival, interaction`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-914.73 -234.49    0.16  210.23 1065.19 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    1268.06      33.41  37.960  < 2e-16 ***
+age_months_centred                               10.77       3.92   2.747  0.00678 ** 
+exp_to_target_lang_centred                     -156.86     128.01  -1.225  0.22243    
+age_months_centred:exp_to_target_lang_centred    22.62      20.28   1.115  0.26656    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 380.8 on 145 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.06304,	Adjusted R-squared:  0.04365 
+F-statistic: 3.252 on 3 and 145 DF,  p-value: 0.02361
+
+
+$`Models - Experimental, all, archival, interaction`$mean_mean_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.24703 -0.05528 -0.00352  0.06478  0.22591 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.0458620  0.0074078   6.191 5.90e-09 ***
+age_months_centred                            0.0041063  0.0008686   4.728 5.36e-06 ***
+exp_to_target_lang_centred                    0.1229037  0.0285155   4.310 3.01e-05 ***
+age_months_centred:exp_to_target_lang_centred 0.0005105  0.0045692   0.112    0.911    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.08404 on 144 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.2287,	Adjusted R-squared:  0.2127 
+F-statistic: 14.24 on 3 and 144 DF,  p-value: 3.561e-08
+
+
+$`Models - Experimental, all, archival, interaction`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.60656 -0.30095 -0.07762  0.23813  0.93618 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1.413768   0.030101  46.968  < 2e-16 ***
+age_months_centred                            0.009341   0.003532   2.645  0.00908 ** 
+exp_to_target_lang_centred                    0.228399   0.115353   1.980  0.04960 *  
+age_months_centred:exp_to_target_lang_centred 0.018401   0.018276   1.007  0.31568    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3431 on 145 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.07647,	Adjusted R-squared:  0.05736 
+F-statistic: 4.002 on 3 and 145 DF,  p-value: 0.008995
+
+
+$`Models - Experimental, all, archival, interaction`$mean_peak_pupil_latency
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-241.424  -50.151    1.692   56.594  248.448 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   389.2112     7.8347  49.678  < 2e-16 ***
+age_months_centred                              1.1026     0.9187   1.200  0.23200    
+exp_to_target_lang_centred                     96.9255    30.1591   3.214  0.00162 ** 
+age_months_centred:exp_to_target_lang_centred  -1.6758     4.8326  -0.347  0.72927    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 88.88 on 144 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.07875,	Adjusted R-squared:  0.05955 
+F-statistic: 4.103 on 3 and 144 DF,  p-value: 0.007909
+
+
+$`Models - Experimental, all, archival, interaction`$mean_peak_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.25552 -0.06869 -0.00863  0.06482  0.29861 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.103151   0.008947  11.529  < 2e-16 ***
+age_months_centred                            0.004379   0.001049   4.175 5.14e-05 ***
+exp_to_target_lang_centred                    0.157160   0.034440   4.563 1.07e-05 ***
+age_months_centred:exp_to_target_lang_centred 0.005341   0.005519   0.968    0.335    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1015 on 144 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.2189,	Adjusted R-squared:  0.2026 
+F-statistic: 13.45 on 3 and 144 DF,  p-value: 8.685e-08
+
+
+$`Models - Experimental, all, archival, interaction`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.50260 -0.06839  0.01413  0.08738  0.49372 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.584373   0.012104  48.281  < 2e-16 ***
+age_months_centred                            0.010587   0.001353   7.824 1.51e-12 ***
+exp_to_target_lang_centred                    0.002953   0.045396   0.065   0.9482    
+age_months_centred:exp_to_target_lang_centred 0.013979   0.006990   2.000   0.0476 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1283 on 131 degrees of freedom
+  (16 observations deleted due to missingness)
+Multiple R-squared:  0.3297,	Adjusted R-squared:  0.3144 
+F-statistic: 21.48 on 3 and 131 DF,  p-value: 2.228e-11
+
+
+$`Models - Experimental, all, archival, interaction`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.52778 -0.15742  0.00843  0.14686  0.54837 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    0.180414   0.020334   8.873 4.38e-15 ***
+age_months_centred                             0.017989   0.002367   7.600 4.88e-12 ***
+exp_to_target_lang_centred                    -0.140689   0.079101  -1.779   0.0776 .  
+age_months_centred:exp_to_target_lang_centred  0.024604   0.012988   1.894   0.0604 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2179 on 132 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.3236,	Adjusted R-squared:  0.3082 
+F-statistic: 21.05 on 3 and 132 DF,  p-value: 3.325e-11
+
+
+$`Models - Experimental, all, archival, interaction`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.77596 -0.13511  0.04577  0.19606  0.45594 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.770495   0.025705  29.975  < 2e-16 ***
+age_months_centred                            0.019289   0.003013   6.401 2.17e-09 ***
+exp_to_target_lang_centred                    0.261541   0.098235   2.662  0.00867 ** 
+age_months_centred:exp_to_target_lang_centred 0.007181   0.015863   0.453  0.65145    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2874 on 140 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.2624,	Adjusted R-squared:  0.2466 
+F-statistic: 16.61 on 3 and 140 DF,  p-value: 2.758e-09
+
+
+$`Models - Experimental, all, archival, interaction`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-0.5546 -0.3000 -0.0133  0.2098  0.7038 
+
+Coefficients:
+                                                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    0.4416656  0.0310217  14.237   <2e-16 ***
+age_months_centred                             0.0003793  0.0036308   0.104   0.9170    
+exp_to_target_lang_centred                    -0.2138795  0.1170362  -1.827   0.0698 .  
+age_months_centred:exp_to_target_lang_centred  0.0188266  0.0180710   1.042   0.2993    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.337 on 136 degrees of freedom
+  (11 observations deleted due to missingness)
+Multiple R-squared:  0.03279,	Adjusted R-squared:  0.01145 
+F-statistic: 1.537 on 3 and 136 DF,  p-value: 0.2079
+
+
+$`Models - Experimental, all, archival, interaction`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-616.06 -134.51  -13.67  155.76  745.88 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    579.251     23.205  24.963  < 2e-16 ***
+age_months_centred                             -13.239      2.699  -4.904 2.83e-06 ***
+exp_to_target_lang_centred                    -220.883     87.297  -2.530   0.0126 *  
+age_months_centred:exp_to_target_lang_centred   -4.892     14.643  -0.334   0.7389    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 239.6 on 126 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1925,	Adjusted R-squared:  0.1732 
+F-statistic: 10.01 on 3 and 126 DF,  p-value: 5.776e-06
+
+
+
+$`Models - Non-xperimental, all, archival, simple`
+$`Models - Non-xperimental, all, archival, simple`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-902.69 -273.09  -15.48  256.78  744.21 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1222.157     28.208  43.327  < 2e-16 ***
+age_months_centred            8.102      2.840   2.853  0.00488 ** 
+exp_to_target_lang_centred  120.078    111.506   1.077  0.28309    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 345.9 on 167 degrees of freedom
+Multiple R-squared:  0.05291,	Adjusted R-squared:  0.04157 
+F-statistic: 4.665 on 2 and 167 DF,  p-value: 0.01068
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-1035.12  -255.46   -13.07   253.91   791.43 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1223.209     28.730  42.576  < 2e-16 ***
+age_months_centred            8.857      2.892   3.062  0.00256 ** 
+exp_to_target_lang_centred  118.684    113.572   1.045  0.29753    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 352.3 on 167 degrees of freedom
+Multiple R-squared:  0.05915,	Adjusted R-squared:  0.04789 
+F-statistic:  5.25 on 2 and 167 DF,  p-value: 0.006149
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-907.25 -234.74  -11.65  248.38  685.46 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1314.301     25.521  51.498  < 2e-16 ***
+age_months_centred            9.550      2.569   3.717 0.000275 ***
+exp_to_target_lang_centred  151.518    100.887   1.502 0.135023    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 312.9 on 167 degrees of freedom
+Multiple R-squared:  0.08806,	Adjusted R-squared:  0.07714 
+F-statistic: 8.063 on 2 and 167 DF,  p-value: 0.0004542
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_mean_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.17170 -0.04709 -0.01339  0.04055  0.20565 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.0409703  0.0055938   7.324 9.72e-12 ***
+age_months_centred         0.0017256  0.0005631   3.064  0.00255 ** 
+exp_to_target_lang_centred 0.0899563  0.0221126   4.068 7.29e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.06859 on 167 degrees of freedom
+Multiple R-squared:  0.135,	Adjusted R-squared:  0.1246 
+F-statistic: 13.03 on 2 and 167 DF,  p-value: 5.514e-06
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.52836 -0.21078 -0.04412  0.17066  1.49569 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                1.397749   0.025395  55.041   <2e-16 ***
+age_months_centred         0.004595   0.002557   1.797   0.0741 .  
+exp_to_target_lang_centred 0.083102   0.100386   0.828   0.4090    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3114 on 167 degrees of freedom
+Multiple R-squared:  0.02299,	Adjusted R-squared:  0.01129 
+F-statistic: 1.965 on 2 and 167 DF,  p-value: 0.1434
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_peak_pupil_latency
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-234.089  -44.455    9.677   52.927  206.118 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                387.53379    6.31484  61.369   <2e-16 ***
+age_months_centred          -0.08621    0.63573  -0.136   0.8923    
+exp_to_target_lang_centred  64.34734   24.96292   2.578   0.0108 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 77.43 on 167 degrees of freedom
+Multiple R-squared:  0.03835,	Adjusted R-squared:  0.02683 
+F-statistic:  3.33 on 2 and 167 DF,  p-value: 0.03819
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_peak_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.22820 -0.05906 -0.01418  0.05122  0.24125 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.0961156  0.0067717  14.194  < 2e-16 ***
+age_months_centred         0.0018010  0.0006817   2.642 0.009029 ** 
+exp_to_target_lang_centred 0.0976470  0.0267690   3.648 0.000353 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.08303 on 167 degrees of freedom
+Multiple R-squared:  0.1088,	Adjusted R-squared:  0.09809 
+F-statistic: 10.19 on 2 and 167 DF,  p-value: 6.676e-05
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.37335 -0.06556  0.00908  0.07045  0.31393 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.6226582  0.0091035  68.398  < 2e-16 ***
+age_months_centred         0.0076081  0.0009165   8.302 3.33e-14 ***
+exp_to_target_lang_centred 0.1615088  0.0359865   4.488 1.33e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1116 on 167 degrees of freedom
+Multiple R-squared:  0.3487,	Adjusted R-squared:  0.3409 
+F-statistic: 44.71 on 2 and 167 DF,  p-value: 2.813e-16
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.40819 -0.13500  0.00166  0.13388  0.57144 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.240143   0.017689  13.576  < 2e-16 ***
+age_months_centred         0.010770   0.001755   6.135 6.36e-09 ***
+exp_to_target_lang_centred 0.256338   0.069509   3.688 0.000309 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2105 on 161 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2398,	Adjusted R-squared:  0.2304 
+F-statistic: 25.39 on 2 and 161 DF,  p-value: 2.596e-10
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.68785 -0.12108  0.05071  0.16499  0.45330 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                0.766878   0.020441  37.516  < 2e-16 ***
+age_months_centred         0.013721   0.002077   6.607 5.54e-10 ***
+exp_to_target_lang_centred 0.307597   0.080118   3.839 0.000177 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2447 on 160 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.268,	Adjusted R-squared:  0.2589 
+F-statistic: 29.29 on 2 and 160 DF,  p-value: 1.443e-11
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.59933 -0.21277 -0.01897  0.22913  0.53186 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 0.538587   0.026017  20.701   <2e-16 ***
+age_months_centred          0.005145   0.002648   1.943   0.0538 .  
+exp_to_target_lang_centred -0.159339   0.101555  -1.569   0.1186    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3118 on 160 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.03749,	Adjusted R-squared:  0.02546 
+F-statistic: 3.116 on 2 and 160 DF,  p-value: 0.04703
+
+
+$`Models - Non-xperimental, all, archival, simple`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+
+$`Models - Non-xperimental, all, archival, interaction`
+$`Models - Non-xperimental, all, archival, interaction`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-884.84 -266.41  -18.67  247.54  790.49 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1222.823     28.238  43.305  < 2e-16 ***
+age_months_centred                               8.238      2.846   2.895  0.00431 ** 
+exp_to_target_lang_centred                     126.147    111.799   1.128  0.26080    
+age_months_centred:exp_to_target_lang_centred  -13.311     15.192  -0.876  0.38218    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 346.1 on 166 degrees of freedom
+Multiple R-squared:  0.05727,	Adjusted R-squared:  0.04024 
+F-statistic: 3.362 on 3 and 166 DF,  p-value: 0.02016
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-1017.75  -263.22   -15.43   251.52   803.24 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1223.857     28.766  42.545  < 2e-16 ***
+age_months_centred                               8.989      2.899   3.100  0.00227 ** 
+exp_to_target_lang_centred                     124.588    113.893   1.094  0.27558    
+age_months_centred:exp_to_target_lang_centred  -12.949     15.476  -0.837  0.40397    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 352.6 on 166 degrees of freedom
+Multiple R-squared:  0.06311,	Adjusted R-squared:  0.04617 
+F-statistic: 3.727 on 3 and 166 DF,  p-value: 0.01255
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-892.99 -230.78   -6.98  239.11  695.15 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1314.833     25.561  51.438  < 2e-16 ***
+age_months_centred                               9.658      2.576   3.749 0.000245 ***
+exp_to_target_lang_centred                     156.367    101.203   1.545 0.124230    
+age_months_centred:exp_to_target_lang_centred  -10.636     13.752  -0.773 0.440358    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 313.3 on 166 degrees of freedom
+Multiple R-squared:  0.09133,	Adjusted R-squared:  0.07491 
+F-statistic: 5.562 on 3 and 166 DF,  p-value: 0.001163
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_mean_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.17180 -0.04707 -0.01351  0.04047  0.20565 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   4.097e-02  5.613e-03   7.299 1.14e-11 ***
+age_months_centred                            1.725e-03  5.657e-04   3.049  0.00267 ** 
+exp_to_target_lang_centred                    8.992e-02  2.222e-02   4.047 7.95e-05 ***
+age_months_centred:exp_to_target_lang_centred 7.592e-05  3.020e-03   0.025  0.97997    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.0688 on 166 degrees of freedom
+Multiple R-squared:  0.135,	Adjusted R-squared:  0.1194 
+F-statistic: 8.635 on 3 and 166 DF,  p-value: 2.332e-05
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-0.5782 -0.2081 -0.0379  0.1678  1.4966 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   1.397364   0.025456  54.893   <2e-16 ***
+age_months_centred                            0.004516   0.002566   1.760   0.0802 .  
+exp_to_target_lang_centred                    0.079595   0.100786   0.790   0.4308    
+age_months_centred:exp_to_target_lang_centred 0.007691   0.013695   0.562   0.5752    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.312 on 166 degrees of freedom
+Multiple R-squared:  0.02485,	Adjusted R-squared:  0.007222 
+F-statistic:  1.41 on 3 and 166 DF,  p-value: 0.2418
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_peak_pupil_latency
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-230.96  -48.46    7.67   53.82  208.65 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   387.65034    6.32719  61.267  < 2e-16 ***
+age_months_centred                             -0.06241    0.63769  -0.098  0.92215    
+exp_to_target_lang_centred                     65.41017   25.05082   2.611  0.00985 ** 
+age_months_centred:exp_to_target_lang_centred  -2.33112    3.40405  -0.685  0.49442    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 77.56 on 166 degrees of freedom
+Multiple R-squared:  0.04106,	Adjusted R-squared:  0.02373 
+F-statistic: 2.369 on 3 and 166 DF,  p-value: 0.07252
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_peak_pupil_size_difference
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.22418 -0.05987 -0.01429  0.05116  0.24082 
+
+Coefficients:
+                                                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    0.0961625  0.0067932  14.156  < 2e-16 ***
+age_months_centred                             0.0018106  0.0006847   2.645 0.008965 ** 
+exp_to_target_lang_centred                     0.0980750  0.0268958   3.646 0.000355 ***
+age_months_centred:exp_to_target_lang_centred -0.0009388  0.0036548  -0.257 0.797602    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.08327 on 166 degrees of freedom
+Multiple R-squared:  0.1091,	Adjusted R-squared:  0.09301 
+F-statistic: 6.777 on 3 and 166 DF,  p-value: 0.0002443
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.37610 -0.06617  0.00986  0.07038  0.31322 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.6225254  0.0091261  68.214  < 2e-16 ***
+age_months_centred                            0.0075810  0.0009198   8.242 4.87e-14 ***
+exp_to_target_lang_centred                    0.1602976  0.0361324   4.436 1.66e-05 ***
+age_months_centred:exp_to_target_lang_centred 0.0026566  0.0049099   0.541    0.589    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1119 on 166 degrees of freedom
+Multiple R-squared:  0.3499,	Adjusted R-squared:  0.3381 
+F-statistic: 29.78 on 3 and 166 DF,  p-value: 1.859e-15
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.40671 -0.13344  0.00498  0.13374  0.57149 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                   0.240089   0.017734  13.538  < 2e-16 ***
+age_months_centred                            0.010726   0.001763   6.084 8.33e-09 ***
+exp_to_target_lang_centred                    0.253121   0.070084   3.612 0.000407 ***
+age_months_centred:exp_to_target_lang_centred 0.004112   0.009539   0.431 0.667040    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.211 on 160 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2407,	Adjusted R-squared:  0.2265 
+F-statistic: 16.91 on 3 and 160 DF,  p-value: 1.375e-09
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.68742 -0.12095  0.05244  0.16607  0.45645 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    0.766914   0.020508  37.396  < 2e-16 ***
+age_months_centred                             0.013734   0.002088   6.579  6.5e-10 ***
+exp_to_target_lang_centred                     0.308267   0.080631   3.823 0.000189 ***
+age_months_centred:exp_to_target_lang_centred -0.001124   0.010952  -0.103 0.918373    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2454 on 159 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.2681,	Adjusted R-squared:  0.2543 
+F-statistic: 19.41 on 3 and 159 DF,  p-value: 8.929e-11
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-0.6547 -0.2116 -0.0167  0.2334  0.5526 
+
+Coefficients:
+                                               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    0.538337   0.025977  20.724   <2e-16 ***
+age_months_centred                             0.004937   0.002649   1.864   0.0642 .  
+exp_to_target_lang_centred                    -0.168547   0.101671  -1.658   0.0993 .  
+age_months_centred:exp_to_target_lang_centred  0.016987   0.013832   1.228   0.2212    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3114 on 159 degrees of freedom
+  (7 observations deleted due to missingness)
+Multiple R-squared:  0.04653,	Adjusted R-squared:  0.02854 
+F-statistic: 2.587 on 3 and 159 DF,  p-value: 0.05504
+
+
+$`Models - Non-xperimental, all, archival, interaction`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred * exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-578.5 -167.0  -58.1  168.7  771.8 
+
+Coefficients:
+                                              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                                    517.047     21.796  23.722  < 2e-16 ***
+age_months_centred                              -9.651      2.184  -4.419 1.89e-05 ***
+exp_to_target_lang_centred                    -217.268     84.145  -2.582   0.0108 *  
+age_months_centred:exp_to_target_lang_centred  -16.702     11.330  -1.474   0.1425    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249 on 151 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1654,	Adjusted R-squared:  0.1488 
+F-statistic: 9.974 on 3 and 151 DF,  p-value: 4.885e-06
+
+
+
+$`Models - Experimental, all, peekbank, simple`
+$`Models - Experimental, all, peekbank, simple`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+$`Models - Experimental, all, peekbank, simple`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-610.72 -135.21  -10.96  155.87  754.27 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                  579.79      23.07  25.134  < 2e-16 ***
+age_months_centred           -13.23       2.69  -4.918 2.65e-06 ***
+exp_to_target_lang_centred  -224.78      86.21  -2.607   0.0102 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 238.7 on 127 degrees of freedom
+  (21 observations deleted due to missingness)
+Multiple R-squared:  0.1918,	Adjusted R-squared:  0.179 
+F-statistic: 15.06 on 2 and 127 DF,  p-value: 1.346e-06
+
+
+
+$`Models - Non-experimental, all, peekbank, simple`
+$`Models - Non-experimental, all, peekbank, simple`$mean_duration_of_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_first_look_dur
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_longest_look
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_number_fixations
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_prop_looking
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_prop_looking_diff
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_prop_shift_distractor_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_prop_shift_target_initial
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+$`Models - Non-experimental, all, peekbank, simple`$mean_RT
+
+Call:
+lm(formula = response ~ age_months_centred + exp_to_target_lang_centred, 
+    data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-632.91 -167.83  -52.07  157.27  798.75 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                 517.834     21.874  23.674  < 2e-16 ***
+age_months_centred           -9.944      2.184  -4.554 1.07e-05 ***
+exp_to_target_lang_centred -232.086     83.864  -2.767  0.00635 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 249.9 on 152 degrees of freedom
+  (15 observations deleted due to missingness)
+Multiple R-squared:  0.1534,	Adjusted R-squared:  0.1422 
+F-statistic: 13.77 on 2 and 152 DF,  p-value: 3.197e-06
+
+
+
+$`Model comparisons - simple models`
+$`Model comparisons - simple models`$experimental_all_archival
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 2200.8 (<.001) | 2201.1 (<.001) | 2212.8 (<.001) | 0.045
+mean_first_look_dur                |    lm | 2205.6 (<.001) | 2205.9 (<.001) | 2217.6 (<.001) | 0.053
+mean_longest_look                  |    lm | 2198.8 (<.001) | 2199.1 (<.001) | 2210.8 (<.001) | 0.055
+mean_mean_pupil_size_difference    |    lm | -309.1 (>.999) | -308.8 (>.999) | -297.1 (>.999) | 0.229
+mean_number_fixations              |    lm |  109.0 (<.001) |  109.3 (<.001) |  121.1 (<.001) | 0.070
+mean_peak_pupil_latency            |    lm | 1752.3 (<.001) | 1752.6 (<.001) | 1764.3 (<.001) | 0.078
+mean_peak_pupil_size_difference    |    lm | -252.3 (<.001) | -252.0 (<.001) | -240.3 (<.001) | 0.214
+mean_prop_looking                  |    lm | -163.3 (<.001) | -163.0 (<.001) | -151.7 (<.001) | 0.309
+mean_prop_looking_diff             |    lm |  -20.9 (<.001) |  -20.6 (<.001) |   -9.2 (<.001) | 0.305
+mean_prop_shift_distractor_initial |    lm |   53.7 (<.001) |   54.0 (<.001) |   65.6 (<.001) | 0.261
+mean_prop_shift_target_initial     |    lm |   97.8 (<.001) |   98.1 (<.001) |  109.6 (<.001) | 0.025
+mean_RT                            |    lm | 1797.5 (<.001) | 1797.8 (<.001) | 1809.0 (<.001) | 0.192
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.032 | 379.745 | 383.627
+mean_first_look_dur                |     0.040 | 385.874 | 389.819
+mean_longest_look                  |     0.042 | 377.220 | 381.076
+mean_mean_pupil_size_difference    |     0.218 |   0.083 |   0.084
+mean_number_fixations              |     0.057 |   0.340 |   0.343
+mean_peak_pupil_latency            |     0.065 |  87.708 |  88.611
+mean_peak_pupil_size_difference    |     0.203 |   0.100 |   0.101
+mean_prop_looking                  |     0.299 |   0.128 |   0.130
+mean_prop_looking_diff             |     0.295 |   0.218 |   0.220
+mean_prop_shift_distractor_initial |     0.251 |   0.284 |   0.287
+mean_prop_shift_target_initial     |     0.011 |   0.333 |   0.337
+mean_RT                            |     0.179 | 235.970 | 238.741
+
+$`Model comparisons - simple models`$experimental_all_peekbank
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_first_look_dur                |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_longest_look                  |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_number_fixations              |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_prop_looking                  |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_prop_looking_diff             |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_prop_shift_distractor_initial |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_prop_shift_target_initial     |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+mean_RT                            |    lm | 1797.5 (0.111) | 1797.8 (0.111) | 1809.0 (0.111) | 0.192
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.179 | 235.970 | 238.741
+mean_first_look_dur                |     0.179 | 235.970 | 238.741
+mean_longest_look                  |     0.179 | 235.970 | 238.741
+mean_number_fixations              |     0.179 | 235.970 | 238.741
+mean_prop_looking                  |     0.179 | 235.970 | 238.741
+mean_prop_looking_diff             |     0.179 | 235.970 | 238.741
+mean_prop_shift_distractor_initial |     0.179 | 235.970 | 238.741
+mean_prop_shift_target_initial     |     0.179 | 235.970 | 238.741
+mean_RT                            |     0.179 | 235.970 | 238.741
+
+$`Model comparisons - simple models`$`non-experimental_all_archival`
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 2475.1 (<.001) | 2475.3 (<.001) | 2487.6 (<.001) | 0.053
+mean_first_look_dur                |    lm | 2481.3 (<.001) | 2481.6 (<.001) | 2493.9 (<.001) | 0.059
+mean_longest_look                  |    lm | 2441.1 (<.001) | 2441.3 (<.001) | 2453.6 (<.001) | 0.088
+mean_mean_pupil_size_difference    |    lm | -423.6 (>.999) | -423.4 (>.999) | -411.1 (>.999) | 0.135
+mean_number_fixations              |    lm |   90.7 (<.001) |   91.0 (<.001) |  103.3 (<.001) | 0.023
+mean_peak_pupil_latency            |    lm | 1966.2 (<.001) | 1966.5 (<.001) | 1978.8 (<.001) | 0.038
+mean_peak_pupil_size_difference    |    lm | -358.7 (<.001) | -358.4 (<.001) | -346.1 (<.001) | 0.109
+mean_prop_looking                  |    lm | -258.1 (<.001) | -257.8 (<.001) | -245.5 (<.001) | 0.349
+mean_prop_looking_diff             |    lm |  -40.8 (<.001) |  -40.5 (<.001) |  -28.4 (<.001) | 0.240
+mean_prop_shift_distractor_initial |    lm |    8.6 (<.001) |    8.8 (<.001) |   21.0 (<.001) | 0.268
+mean_prop_shift_target_initial     |    lm |   87.7 (<.001) |   87.9 (<.001) |  100.0 (<.001) | 0.037
+mean_RT                            |    lm | 2156.4 (<.001) | 2156.7 (<.001) | 2168.6 (<.001) | 0.153
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.042 | 342.817 | 345.883
+mean_first_look_dur                |     0.048 | 349.167 | 352.290
+mean_longest_look                  |     0.077 | 310.169 | 312.942
+mean_mean_pupil_size_difference    |     0.125 |   0.068 |   0.069
+mean_number_fixations              |     0.011 |   0.309 |   0.311
+mean_peak_pupil_latency            |     0.027 |  76.746 |  77.433
+mean_peak_pupil_size_difference    |     0.098 |   0.082 |   0.083
+mean_prop_looking                  |     0.341 |   0.111 |   0.112
+mean_prop_looking_diff             |     0.230 |   0.209 |   0.210
+mean_prop_shift_distractor_initial |     0.259 |   0.242 |   0.245
+mean_prop_shift_target_initial     |     0.025 |   0.309 |   0.312
+mean_RT                            |     0.142 | 247.518 | 249.949
+
+$`Model comparisons - simple models`$`non-experimental_all_peekbank`
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_first_look_dur                |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_longest_look                  |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_number_fixations              |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_prop_looking                  |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_prop_looking_diff             |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_prop_shift_distractor_initial |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_prop_shift_target_initial     |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+mean_RT                            |    lm | 2156.4 (0.111) | 2156.7 (0.111) | 2168.6 (0.111) | 0.153
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.142 | 247.518 | 249.949
+mean_first_look_dur                |     0.142 | 247.518 | 249.949
+mean_longest_look                  |     0.142 | 247.518 | 249.949
+mean_number_fixations              |     0.142 | 247.518 | 249.949
+mean_prop_looking                  |     0.142 | 247.518 | 249.949
+mean_prop_looking_diff             |     0.142 | 247.518 | 249.949
+mean_prop_shift_distractor_initial |     0.142 | 247.518 | 249.949
+mean_prop_shift_target_initial     |     0.142 | 247.518 | 249.949
+mean_RT                            |     0.142 | 247.518 | 249.949
+
+
+$`Model comparisons - interaction models`
+$`Model comparisons - interaction models`$experimental_all_archival
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 2200.8 (<.001) | 2201.1 (<.001) | 2212.8 (<.001) | 0.045
+mean_first_look_dur                |    lm | 2205.6 (<.001) | 2205.9 (<.001) | 2217.6 (<.001) | 0.053
+mean_longest_look                  |    lm | 2198.8 (<.001) | 2199.1 (<.001) | 2210.8 (<.001) | 0.055
+mean_mean_pupil_size_difference    |    lm | -309.1 (>.999) | -308.8 (>.999) | -297.1 (>.999) | 0.229
+mean_number_fixations              |    lm |  109.0 (<.001) |  109.3 (<.001) |  121.1 (<.001) | 0.070
+mean_peak_pupil_latency            |    lm | 1752.3 (<.001) | 1752.6 (<.001) | 1764.3 (<.001) | 0.078
+mean_peak_pupil_size_difference    |    lm | -252.3 (<.001) | -252.0 (<.001) | -240.3 (<.001) | 0.214
+mean_prop_looking                  |    lm | -163.3 (<.001) | -163.0 (<.001) | -151.7 (<.001) | 0.309
+mean_prop_looking_diff             |    lm |  -20.9 (<.001) |  -20.6 (<.001) |   -9.2 (<.001) | 0.305
+mean_prop_shift_distractor_initial |    lm |   53.7 (<.001) |   54.0 (<.001) |   65.6 (<.001) | 0.261
+mean_prop_shift_target_initial     |    lm |   97.8 (<.001) |   98.1 (<.001) |  109.6 (<.001) | 0.025
+mean_RT                            |    lm | 1797.5 (<.001) | 1797.8 (<.001) | 1809.0 (<.001) | 0.192
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.032 | 379.745 | 383.627
+mean_first_look_dur                |     0.040 | 385.874 | 389.819
+mean_longest_look                  |     0.042 | 377.220 | 381.076
+mean_mean_pupil_size_difference    |     0.218 |   0.083 |   0.084
+mean_number_fixations              |     0.057 |   0.340 |   0.343
+mean_peak_pupil_latency            |     0.065 |  87.708 |  88.611
+mean_peak_pupil_size_difference    |     0.203 |   0.100 |   0.101
+mean_prop_looking                  |     0.299 |   0.128 |   0.130
+mean_prop_looking_diff             |     0.295 |   0.218 |   0.220
+mean_prop_shift_distractor_initial |     0.251 |   0.284 |   0.287
+mean_prop_shift_target_initial     |     0.011 |   0.333 |   0.337
+mean_RT                            |     0.179 | 235.970 | 238.741
+
+$`Model comparisons - interaction models`$`non-experimental_all_archival`
+# Comparison of Model Performance Indices
+
+Name                               | Model |  AIC (weights) | AICc (weights) |  BIC (weights) |    R2
+-----------------------------------------------------------------------------------------------------
+mean_duration_of_look              |    lm | 2475.1 (<.001) | 2475.3 (<.001) | 2487.6 (<.001) | 0.053
+mean_first_look_dur                |    lm | 2481.3 (<.001) | 2481.6 (<.001) | 2493.9 (<.001) | 0.059
+mean_longest_look                  |    lm | 2441.1 (<.001) | 2441.3 (<.001) | 2453.6 (<.001) | 0.088
+mean_mean_pupil_size_difference    |    lm | -423.6 (>.999) | -423.4 (>.999) | -411.1 (>.999) | 0.135
+mean_number_fixations              |    lm |   90.7 (<.001) |   91.0 (<.001) |  103.3 (<.001) | 0.023
+mean_peak_pupil_latency            |    lm | 1966.2 (<.001) | 1966.5 (<.001) | 1978.8 (<.001) | 0.038
+mean_peak_pupil_size_difference    |    lm | -358.7 (<.001) | -358.4 (<.001) | -346.1 (<.001) | 0.109
+mean_prop_looking                  |    lm | -258.1 (<.001) | -257.8 (<.001) | -245.5 (<.001) | 0.349
+mean_prop_looking_diff             |    lm |  -40.8 (<.001) |  -40.5 (<.001) |  -28.4 (<.001) | 0.240
+mean_prop_shift_distractor_initial |    lm |    8.6 (<.001) |    8.8 (<.001) |   21.0 (<.001) | 0.268
+mean_prop_shift_target_initial     |    lm |   87.7 (<.001) |   87.9 (<.001) |  100.0 (<.001) | 0.037
+mean_RT                            |    lm | 2156.4 (<.001) | 2156.7 (<.001) | 2168.6 (<.001) | 0.153
+
+Name                               | R2 (adj.) |    RMSE |   Sigma
+------------------------------------------------------------------
+mean_duration_of_look              |     0.042 | 342.817 | 345.883
+mean_first_look_dur                |     0.048 | 349.167 | 352.290
+mean_longest_look                  |     0.077 | 310.169 | 312.942
+mean_mean_pupil_size_difference    |     0.125 |   0.068 |   0.069
+mean_number_fixations              |     0.011 |   0.309 |   0.311
+mean_peak_pupil_latency            |     0.027 |  76.746 |  77.433
+mean_peak_pupil_size_difference    |     0.098 |   0.082 |   0.083
+mean_prop_looking                  |     0.341 |   0.111 |   0.112
+mean_prop_looking_diff             |     0.230 |   0.209 |   0.210
+mean_prop_shift_distractor_initial |     0.259 |   0.242 |   0.245
+mean_prop_shift_target_initial     |     0.025 |   0.309 |   0.312
+mean_RT                            |     0.142 | 247.518 | 249.949
+
+

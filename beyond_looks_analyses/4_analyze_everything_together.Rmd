@@ -288,7 +288,7 @@ for (i in 1:length(for_factor_analysis)) {
   data <- for_factor_analysis[[i]] 
   element <- names(for_factor_analysis[i])
   #We are sticking with ss loads above 1 so that leaves us with 2 factors.
-  scree = data.frame(factor_s = 1:ncol(data), eigenvalue = eigen(data)$values)
+  scree = data.frame(factor_n = 1:ncol(data), eigenvalue = eigen(data)$values)
   screeplot <- ggplot(scree, aes(x=factor_n, y = eigenvalue)) +
                 geom_point() +
                 geom_line() +
@@ -403,7 +403,7 @@ for (i in 1:length(iccs)) {
 }
   
 
-print_list[[paste("ICC:")]] <- icc_means
+print_list[[paste("ICC Means:")]] <- icc_means
 
 icc_plots <- list()
 
@@ -552,6 +552,13 @@ for (i in 1:length(models)) {
   
 }
 
+print_list[[paste("Models - Experimental, all, archival, simple")]] <- purrr::map(models$experimental_all_archival$simple, summary)
+print_list[[paste("Models - Experimental, all, archival, interaction")]] <- purrr::map(models$experimental_all_archival$inter, summary)
+print_list[[paste("Models - Non-xperimental, all, archival, simple")]] <- purrr::map(models$`non-experimental_all_archival`$simple, summary) 
+print_list[[paste("Models - Non-xperimental, all, archival, interaction")]] <- purrr::map(models$`non-experimental_all_archival`$inter, summary) 
+print_list[[paste("Models - Experimental, all, peekbank, simple")]] <- purrr::map(models$experimental_all_peekbank$simple, summary) 
+print_list[[paste("Models - Non-experimental, all, peekbank, simple")]] <- purrr::map(models$`non-experimental_all_peekbank`$simple, summary) 
+
 print_list[[paste("Model comparisons - simple models")]] <- mod_comparisons_simple
 print_list[[paste("Model comparisons - interaction models")]] <- mod_comparisons_inter
 
@@ -666,7 +673,7 @@ ggsave(here::here(paste0("figures/cohens_d_plot.png")), height = 8, width = 10)
 ```{r}
 #Save the print_list to a text file
 
-sink(here(paste0("beyond_looks_analyses/", analysis_type, "_code_printout.txt"))); print(print_list); sink()
+sink(file = here(paste0("code_printout.txt"))); print(print_list); sink()
 
 ```
 
