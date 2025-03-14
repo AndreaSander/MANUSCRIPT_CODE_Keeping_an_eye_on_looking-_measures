@@ -20,13 +20,14 @@ library(here)
 
 ```{r}
 
-#Get peekbank data - start with 5 datasets that have been code checked
+#Get peekbank data - start with 5 datasets that have been code checked (we are NOT using fmw_2013 anymore because of data insonsistency issues)
 
 
-code_checked_studies <- c("casillas_tseltal_2015", "ronfard_2021", "pomper_saffran_2016", "weisleder_stl", "fmw_2013", "xsectional_2007", "swingley_aslin_2002", "potter_remix", "hurtado_2008", "garrison_bergelson_2020", "bacon_gendercues", "frank_tablet_2016", "baumgartner_2014")
+code_checked_studies <- c("casillas_tseltal_2015", "ronfard_2021", "pomper_saffran_2016", "weisleder_stl", "xsectional_2007", "swingley_aslin_2002", "potter_remix", "hurtado_2008", "garrison_bergelson_2020", "bacon_gendercues", "frank_tablet_2016", "baumgartner_2014")
 
 peekbank_data <- get_aoi_timepoints(dataset_name = code_checked_studies) %>%
   left_join(get_administrations(dataset_name = code_checked_studies)) %>%
+  left_join(get_subjects() %>% select(subject_id, sex)) %>%
   left_join(get_trials(dataset_name = code_checked_studies)) %>%
   left_join(get_trial_types(dataset_name = code_checked_studies)) %>%
   left_join(get_stimuli(dataset_name = code_checked_studies) %>% rename(target_id = stimulus_id)) %>%
@@ -51,7 +52,7 @@ peekbank_data <- get_aoi_timepoints(dataset_name = code_checked_studies) %>%
                               condition == "filler" ~ "DELETE",
                               str_detect(condition, "^mix_")  ~ "experimental",
                               str_detect(condition, "^same_") ~ "non-experimental",
-                              is.na(condition) & dataset_name == "fmw_2013" ~ "non-experimental",
+                              #is.na(condition) & dataset_name == "fmw_2013" ~ "non-experimental",
                               is.na(condition) & dataset_name == "hurtado_2008" ~ "non-experimental",
                               is.na(condition) & dataset_name == "ronfard_2021" ~ "non-experimental",
                               is.na(condition) & dataset_name == "weisleder_stl" ~ "non-experimental",
@@ -70,9 +71,18 @@ peekbank_data <- get_aoi_timepoints(dataset_name = code_checked_studies) %>%
          trackloss = case_when(aoi == "missing" ~ TRUE,
                             TRUE ~ FALSE),
          age_months = floor(age_months), #fix a few months that have decimal points, since none of the other ones do
-         recording_name = paste0(subject_id, "_", dataset_name, "_", age_months)) %>%
+         recording_name = paste0(subject_id, "_", administration_id, "_", dataset_name, "_", age_months)) %>%
   filter(!is.na(age_months)) %>% #one kid has NA for age and it's messing things up for the ICC calculation... not sure we can do any real analysis for an unknown age, so remove them.
-  filter(exp_type != "DELETE")
+  filter(exp_type != "DELETE") %>%
+      #one Peekbank dataset has duplicate rows for some reason, so fix this
+      distinct()
+
+#add the same data to itself with the exp_type "both_types" for new analyses that aren't split between types
+
+peekbank_data <- peekbank_data %>%
+  bind_rows(peekbank_data %>% mutate(exp_type = "both_types")) 
+
+beepr::beep()
 
 ```
 
@@ -92,6 +102,7 @@ print_list <- list()
 max_trials <- read_csv(here("max_trials_peekbank.csv"))
 
 trial_cutoff <- peekbank_data %>%
+  filter(exp_type == "both_types") %>%
   group_by(recording_name, dataset_name, age_months) %>%
   distinct(trial_number) %>%
   count(recording_name) %>%
@@ -111,10 +122,12 @@ trial_cutoff <- peekbank_data %>%
 
 
 n_subjects_original <- peekbank_data %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name)
 
 n_trials_original <- peekbank_data %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow()
 
@@ -122,6 +135,7 @@ print_list[[paste("Pre-exclusions N subjects:")]] <- n_subjects_original
 print_list[[paste("Pre-exclusions N trials:")]] <- n_trials_original
   
 trackloss_cleaned <- peekbank_data %>%
+  filter(exp_type == "both_types") %>%
   #filter to interest period
   filter(noun_onset>= 360 & noun_onset <= 3000) %>%
   #for each kid in each trial,
@@ -157,10 +171,12 @@ peekbank_data_after_exclusions <- peekbank_data %>%
   ungroup()
 
 n_subjects_after_trackloss_and_trials_exclusion <- peekbank_data_after_exclusions %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name) #XX kids lost from these exclusions
 
 n_trials_after_trackloss_and_trials_exclusion <- peekbank_data_after_exclusions %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow() #XX kids lost from these exclusions
 
@@ -188,9 +204,13 @@ initial_looks <- analysis_dataset %>%
     target_count = sum(aoi == "target"),
     trackloss_count = sum(aoi == "missing") + sum(is.na(aoi))
      )%>%
-  mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
-                                  distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
-                                  TRUE ~ "neither")) %>% 
+  #Changing how this is done
+  # mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
+  #                                 distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
+  #                                 TRUE ~ "neither")) %>%
+  mutate(initial_look = case_when(target_count > distractor_count ~ "target",
+                                  distractor_count > target_count ~ "distractor",
+                                  TRUE ~ "neither")) %>%
   ungroup() 
 
 
@@ -200,11 +220,13 @@ for (j in c("target", "distractor", "all")) {
   
   if (j %in% c("target", "distractor")) {
   
-  analysis_dataset_split <- analysis_dataset %>%
+  analysis_dataset_split <- analysis_dataset%>%
+    filter(!is.na(initial_look)) %>%
     filter(initial_look == j)
   } else if (j == "all") {
-    
-    analysis_dataset_split <- analysis_dataset
+    # 15 trials from the garrison_bergelson_2020 dataset don't have data for the timestamps required to calculate initial_look, so exclude these ones
+    analysis_dataset_split <- analysis_dataset %>%
+      filter(!is.na(initial_look))
   }
 
 #1. Proportion looking to target
@@ -412,8 +434,8 @@ number_of_switches_by_trial <- analysis_dataset_split %>%
 
 number_of_switches_by_subject <- number_of_switches_by_trial %>%
   group_by(recording_name) %>%
-  summarise(total_aoi_switches = sum(total_aoi_switches, na.rm = T),
-            n_trials_total_aoi_switches = length(unique(trial_number))) %>%
+  summarise(mean_aoi_switches = mean(total_aoi_switches, na.rm = T),
+            n_trials_mean_aoi_switches = length(unique(trial_number))) %>%
   ungroup()
 
 

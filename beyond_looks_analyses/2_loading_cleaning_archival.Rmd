@@ -30,6 +30,11 @@ anon_data <- kbh_w_items %>%
   rename(dataset_name = studio_project_name) %>%
   filter(!(recording_name == "Mix_20_S52" & trial_number > 1)) #Mix 20 S052 has 23 rows for trials other than trial 1 with no data—remove these here, try to figure out why this happened
   
+#add the same data to itself with the exp_type "both_types" for new analyses that aren't split between types
+
+anon_data <- anon_data %>%
+  bind_rows(anon_data %>% mutate(exp_type = "both_types"))
+  
 rm(kbh_w_items)
 rm(kbh_experimental_items)
 
@@ -45,6 +50,7 @@ print_list <- list()
 ## Total trials for each study is usually 12 (CogMisp, Mix), except CompMix, CompLearn with 16, LearnMix with 6
 
 trial_cutoff <- anon_data %>%
+  filter(exp_type == "both_types") %>%
   group_by(recording_name, dataset_name) %>%
   distinct(trial_number) %>%
   count(recording_name) %>%
@@ -55,10 +61,12 @@ trial_cutoff <- anon_data %>%
   distinct(dataset_name, recording_name, max_trials)
 
 n_subjects_original <- anon_data %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name)
 
 n_trials_original <- anon_data %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow()
 
@@ -66,6 +74,7 @@ print_list[[paste("Pre-exclusions N:")]] <- n_subjects_original
 print_list[[paste("Pre-exclusions N trials:")]] <- n_trials_original
   
 trackloss_cleaned <- anon_data %>%
+  filter(exp_type == "both_types") %>%
   #filter to interest period
   filter(noun_onset>= 360 & noun_onset <= 3000) %>%
   #for each kid in each trial,
@@ -101,10 +110,12 @@ anon_data_after_exclusions <- anon_data %>%
   ungroup()
 
 n_subjects_after_trackloss_and_trials_exclusion <- anon_data_after_exclusions %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name) %>%
   count(dataset_name) #XX kids lost from these exclusions
 
 n_trials_after_trackloss_and_trials_exclusion <- anon_data_after_exclusions %>%
+  filter(exp_type == "both_types") %>%
   distinct(recording_name, dataset_name, trial_number) %>%
   nrow() #XX kids lost from these exclusions
 
@@ -132,10 +143,13 @@ initial_looks <- analysis_dataset %>%
     distractor_count = sum(distractor),
     target_count = sum(target),
     trackloss_count = sum(trackloss)
-     )%>%
-  mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
-                                  distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
-                                  TRUE ~ "neither")) %>% 
+     ) %>%
+  # mutate(initial_look = case_when(target_count >0 ~ "target", #if the child *ever* looks to target during first 100 ms, then counted as initial target look
+  #                                 distractor_count/(distractor_count+trackloss_count) >=0.5 ~ "distractor",
+  #                                 TRUE ~ "neither")) %>% 
+  mutate(initial_look = case_when(target_count > distractor_count ~ "target",
+                                  distractor_count > target_count ~ "distractor",
+                                  TRUE ~ "neither")) %>%
   ungroup() 
 
 
@@ -356,8 +370,8 @@ number_of_switches_by_trial <- analysis_dataset_split %>%
 
 number_of_switches_by_subject <- number_of_switches_by_trial %>%
   group_by(recording_name) %>%
-  summarise(total_aoi_switches = sum(total_aoi_switches, na.rm = T),
-            n_trials_total_aoi_switches = length(unique(trial_number))) %>%
+  summarise(mean_aoi_switches = mean(total_aoi_switches, na.rm = T),
+            n_trials_mean_aoi_switches = length(unique(trial_number))) %>%
   ungroup()
 
 
