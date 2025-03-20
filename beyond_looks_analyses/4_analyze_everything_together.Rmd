@@ -20,7 +20,7 @@ options(scipen = 999)
 ```
 
 #Combine data
-#### Only need to run this chunk once, or again if something changes in the cleaning scripts
+#### ONLY NEED TO RUN THIS CHUNK ONCE, OR AGAIN IF SOMETHING CHANGES IN THE CLEANING SCRIPTS
 ```{r}
 
 #Only need to run this chunk once, or again if something changes in the cleaning scripts
@@ -611,7 +611,7 @@ pooled_icc_for_plot %>%
 
 ggsave(here::here(paste0("figures/icc_plot.png")), width = 8, height = 5)
 
-print_list[[paste("ICC:")]] <- icc
+print_list[[paste("ICC:")]] <- icc_by_var_by_look
 
 ```
 
@@ -822,18 +822,24 @@ print_list[[paste("Model comparisons - interaction models")]] <- mod_comparisons
 
 ```
 
-#Models - LMER (in process, not finished, throws errors currently)
+#Models - Mixed Effects
 
 ```{r}
 
 library(lme4)
+library(glmmTMB)
 library(lmerTest)
-#use trial-level data for lmems
 
+#use trial-level data for lmems
 data_by_trial_long_split <- data_by_trial %>%
   #filter(exp_type == "both_types") %>%
   dplyr::select(data_split, data_source, exp_type, dataset_name, subject_id, age_months, age_months_centred, exp_to_target_lang, eng_exp, fre_exp, target_word, prop_looking:longest_look_by_trial, peak_pupil_size_difference, mean_pupil_size_difference, peak_pupil_latency) %>%
   pivot_longer(12:ncol(.), names_to = "variable", values_to = "response") %>%
+  #scale the predictor variables to standardize before doing the models
+  mutate(exp_to_target_lang = exp_to_target_lang/100) %>%
+  group_by(data_split, exp_type, data_source, variable) %>%
+  mutate(across(c(exp_to_target_lang, age_months), scale)) %>%
+  ungroup() %>%
   split(f = paste0(.$data_split, "_", .$exp_type, "_", .$data_source, "_", .$variable))
 
 list_levels_1_lmem <- unique(str_remove(names(data_by_trial_long_split), "(?<=peekbank|archival).*"))
@@ -843,8 +849,7 @@ list_levels_1_lmem <- unique(str_remove(names(data_by_trial_long_split), "(?<=pe
 models_lmem <- list()
 models_lmem[list_levels_1_lmem] <- list(NULL)
 
-list_levels_2_lmem <- list(simple = NULL,
-                      inter = NULL)
+list_levels_2_lmem <- list(simple = NULL)
 
 for (i in 1:length(models_lmem)) {
   models_lmem[[i]] <- list_levels_2_lmem
@@ -869,61 +874,116 @@ for (i in 1:length(data_by_trial_long_split)) {
     next
   } else {
     
+  print(paste(element, var_name))
+    
     #For archival data only, include lang exposure
     if (str_detect(element, "archival")) {
       
-        data$exp_to_target_lang_centred <- (data$exp_to_target_lang/100)-.5
-        #Simple model
-        simple_lmem <- parameters::standardise_parameters(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|dataset_name/subject_id) + (1|dataset_name/target_word),  
-                                  data = data))
+      #--------------------------------------------------------------------Simple model
+      #prop looking variables and mean/peak pupil get regular lmer
+      if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
+        simple_lmem <- lmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data)
         simple_lmem_sum <- summary(simple_lmem)
-        #Interaction model
-        inter_lmem <- lm.beta::lm.beta(lm(response ~ age_months_centred*exp_to_target_lang_centred,
-                                    data = data))
-        inter_lmem_sum <- summary(inter_lmem)
-        #interaction plot
-        inter_plot <- interactions::interact_plot(inter_mod, pred= exp_to_target_lang_centred, modx=age_months_centred, plot.points = T) + 
-          ggtitle(paste0(str_replace(element, "all_archival_", "archival"), "\n", var_name)) + 
-          theme(plot.background = element_rect(colour = "grey", fill=NA))
-        
-        #LMEM
-        simple_lmem <- sjstats::std_beta(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|site/block),  
-                                  data = data))
+      #switch to or stay on target get binomial
+      } else if (var_name %in% c("correct_shift", "remain_on_target")) {
+        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = binomial)
         simple_lmem_sum <- summary(simple_lmem)
+      #aoi switches get zero inflated poisson
+      } else if (var_name %in% c("total_aoi_switches")) {
+        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = poisson, ziformula=~1)
+        simple_lmem_sum <- summary(simple_lmem)
+      #number fixations gets regular poisson
+      } else if (var_name %in% c("number_fixations")) {
+        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = poisson)
+        simple_lmem_sum <- summary(simple_lmem)
+      #RT, duration of looks, and pupil latency get gamma log link
+      } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
+        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = Gamma(link = "log"))
+        simple_lmem_sum <- summary(simple_lmem)
+      }
         
-        add_simple <- list(simple_mod)
+        add_simple <- list(simple_lmem)
         names(add_simple) <- var_name
-        models[[paste0(element)]]$simple <- c(models[[paste0(element)]]$simple, add_simple)
+        models_lmem[[paste0(element)]]$simple <- c(models_lmem[[paste0(element)]]$simple, add_simple)
         
-        add_inter = list(inter_mod)
-        names(add_inter) <- var_name
-        models[[paste0(element)]]$inter <- c(models[[paste0(element)]]$inter, add_inter)
-        
-        add_simple_sum = list(simple_mod_sum)
+        add_simple_sum = list(simple_lmem_sum)
         names(add_simple_sum) <- var_name
-        model_summaries[[paste0(element)]]$simple <- c(model_summaries[[paste0(element)]]$simple, add_simple_sum)
+        model_summaries_lmem[[paste0(element)]]$simple <- c(model_summaries_lmem[[paste0(element)]]$simple, add_simple_sum)
         
-        add_inter_sum = list(inter_mod_sum)
-        names(add_inter_sum) <- var_name
-        model_summaries[[paste0(element)]]$inter <- c(model_summaries[[paste0(element)]]$inter, add_inter_sum)
-        
-        inter_plots[paste0(element, "_", var_name)] <- list(inter_plot)
     } else {
-        #Simple model with only age
-        simple_mod <- lm.beta::lm.beta(lm(response ~ age_months_centred,  
-                                  data = data))
-        simple_mod_sum <- summary(simple_mod)
-      
-        add_simple = list(simple_mod)
-        names(add_simple) <- var_name
-        models[[paste0(element)]]$simple <- c(models[[paste0(element)]]$simple, add_simple)
+        #--------------------------------------------------------------------Simple model with age only
+      #prop looking variables and mean/peak pupil get regular lmer
+      if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
+        simple_lmem <- lmer(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data)
+        simple_lmem_sum <- summary(simple_lmem)
+      #switch to or stay on target get binomial
+      } else if (var_name %in% c("correct_shift", "remain_on_target")) {
+        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = binomial)
+        simple_lmem_sum <- summary(simple_lmem)
+      #aoi switches get zero inflated poisson
+      } else if (var_name %in% c("total_aoi_switches")) {
+        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = poisson, ziformula=~1)
+        simple_lmem_sum <- summary(simple_lmem)
+      #number fixations gets regular poisson
+      } else if (var_name %in% c("number_fixations")) {
+        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = poisson)
+        simple_lmem_sum <- summary(simple_lmem)
+      #RT, duration of looks, and pupil latency get gamma log link
+      } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
+        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = Gamma(link = "log"))
+        simple_lmem_sum <- summary(simple_lmem)
+      }
         
-        add_simple_sum = list(simple_mod_sum)
+        add_simple <- list(simple_lmem)
+        names(add_simple) <- var_name
+        models_lmem[[paste0(element)]]$simple <- c(models_lmem[[paste0(element)]]$simple, add_simple)
+        
+        add_simple_sum = list(simple_lmem_sum)
         names(add_simple_sum) <- var_name
-        model_summaries[[paste0(element)]]$simple <- c(model_summaries[[paste0(element)]]$simple, add_simple_sum)
+        model_summaries_lmem[[paste0(element)]]$simple <- c(model_summaries_lmem[[paste0(element)]]$simple, add_simple_sum)
     }
   }
 }
+
+#------------------------------see which ones have convergence issues
+
+model_names <- character()
+model_warnings <- character()
+
+for(i in 1:length(models_lmem)) {
+  level1_name <- names(models_lmem[i])
+  for(j in 1:length(models_lmem[[i]]$simple)) {
+    level2_name <- names(models_lmem[[i]]$simple[j])
+    model_names <- c(model_names, paste0(level1_name, "...", level2_name))
+    warnings <- glue::glue_collapse(model_summaries_lmem[[i]]$simple[[j]]$optinfo$conv$lme4$messages, sep = "; ")
+    model_warnings <- c(model_warnings, warnings)
+  }
+}
+
+warnings <- tibble(model = model_names,
+       warnings = model_warnings) %>% 
+  separate(model, into = c("model", "variable"), sep = "\\.\\.\\.") %>% 
+  mutate(any_warning = ifelse(warnings == "", "no", "yes")) %>% 
+  count(variable, any_warning) %>% 
+  pivot_wider(names_from = "any_warning", values_from = "n") 
+
+warnings_sum <- warnings %>%
+  summarise(no = sum(no, na.rm = T), yes = sum(yes, na.rm = T)) %>%
+  mutate(variable = "TOTAL")
+
+warnings %>%
+  bind_rows(warnings_sum) %>%
+  rename(no_warning = no, warning = yes)
 
 ```
 
