@@ -882,27 +882,27 @@ for (i in 1:length(data_by_trial_long_split)) {
       #--------------------------------------------------------------------Simple model
       #prop looking variables and mean/peak pupil get regular lmer
       if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
-        simple_lmem <- lmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data)
+        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = gaussian)
         simple_lmem_sum <- summary(simple_lmem)
       #switch to or stay on target get binomial
       } else if (var_name %in% c("correct_shift", "remain_on_target")) {
-        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = binomial)
+        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+                                  data = data, family = binomial,  control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       #aoi switches get zero inflated poisson
-      } else if (var_name %in% c("total_aoi_switches")) {
+      } else if (var_name %in% c("total_aoi_switches", "number_fixations")) {
         simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = data, family = poisson, ziformula=~1)
         simple_lmem_sum <- summary(simple_lmem)
       #number fixations gets regular poisson
-      } else if (var_name %in% c("number_fixations")) {
-        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = poisson)
-        simple_lmem_sum <- summary(simple_lmem)
+      # } else if (var_name %in% c("number_fixations")) {
+      #   simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+      #                             data = data, family = poisson)
+      #   simple_lmem_sum <- summary(simple_lmem)
       #RT, duration of looks, and pupil latency get gamma log link
       } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
-        simple_lmem <- glmer(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = data, family = Gamma(link = "log"))
         simple_lmem_sum <- summary(simple_lmem)
       }
@@ -919,27 +919,27 @@ for (i in 1:length(data_by_trial_long_split)) {
         #--------------------------------------------------------------------Simple model with age only
       #prop looking variables and mean/peak pupil get regular lmer
       if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
-        simple_lmem <- lmer(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data)
+        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = gaussian)
         simple_lmem_sum <- summary(simple_lmem)
       #switch to or stay on target get binomial
       } else if (var_name %in% c("correct_shift", "remain_on_target")) {
-        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = binomial)
+        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
+                                  data = data, family = binomial,  control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       #aoi switches get zero inflated poisson
-      } else if (var_name %in% c("total_aoi_switches")) {
+      } else if (var_name %in% c("total_aoi_switches", "number_fixations")) {
         simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
                                   data = data, family = poisson, ziformula=~1)
         simple_lmem_sum <- summary(simple_lmem)
       #number fixations gets regular poisson
-      } else if (var_name %in% c("number_fixations")) {
-        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = poisson)
-        simple_lmem_sum <- summary(simple_lmem)
+      # } else if (var_name %in% c("number_fixations")) {
+      #   simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
+      #                             data = data, family = poisson) # this one is not working (also tried as Gamma)
+      #   simple_lmem_sum <- summary(simple_lmem)
       #RT, duration of looks, and pupil latency get gamma log link
       } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
-        simple_lmem <- glmer(response ~ age_months + (1|dataset_name/subject_id),
+        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
                                   data = data, family = Gamma(link = "log"))
         simple_lmem_sum <- summary(simple_lmem)
       }
