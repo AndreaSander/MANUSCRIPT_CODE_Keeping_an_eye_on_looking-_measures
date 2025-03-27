@@ -619,6 +619,13 @@ print_list[[paste("ICC:")]] <- icc_by_var_by_look
 
 ```{r}
 
+# Laia added this because my version of sjstats did not have the std_beta() function
+library(remotes)
+install_version("sjstats", version = "0.17.2")
+library(sjstats)
+library(lme4)
+library(lmerTest)
+
 #HK note.... all these models have lang exposure as a factor.... not sure how to make them comparable to our dataset models without that variable
 
 data_by_subject_long_split <- data_by_subject %>%
@@ -677,7 +684,7 @@ for (i in 1:length(data_by_subject_long_split)) {
           ggtitle(paste0(str_replace(element, "all_archival_", "archival"), "\n", var_name)) + 
           theme(plot.background = element_rect(colour = "grey", fill=NA))
         
-        #LMEM
+        #LMEM LAIA: the site/block does not work for me (can you check Hilary?)
         simple_lmem <- sjstats::std_beta(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|site/block),  
                                   data = data))
         simple_lmem_sum <- summary(simple_lmem)
@@ -1088,23 +1095,68 @@ DHARMa::plotResiduals(a3)
 
 ```{r}
 
-library(lme4)
 library(glmmTMB)
-library(lmerTest)
 
 #use trial-level data for lmems
-data_by_trial_long_split <- data_by_trial %>%
+data_by_trial_long_propdiff <- data_by_trial %>%
   #filter(exp_type == "both_types") %>%
-  dplyr::select(data_split, data_source, exp_type, dataset_name, subject_id, age_months, age_months_centred, exp_to_target_lang, eng_exp, fre_exp, target_word, prop_looking:longest_look_by_trial, peak_pupil_size_difference, mean_pupil_size_difference, peak_pupil_latency) %>%
+  dplyr::select(data_split, data_source, exp_type, dataset_name, subject_id, age_months, age_months_centred, exp_to_target_lang, eng_exp, fre_exp, target_word, prop_looking, prop_looking_diff) %>%
   pivot_longer(12:ncol(.), names_to = "variable", values_to = "response") %>%
   #scale the predictor variables to standardize before doing the models
   mutate(exp_to_target_lang = exp_to_target_lang/100) %>%
   group_by(data_split, exp_type, data_source, variable) %>%
   mutate(across(c(exp_to_target_lang, age_months), scale)) %>%
-  ungroup() %>%
+  ungroup() 
+
+datasets_with_data <- data_by_trial_long_propdiff %>% 
+  group_by(data_split, data_source, exp_type, variable, dataset_name) %>% 
+  summarise(response = mean(response, rm.na = T)) 
+
+datasets_with_data_count <- datasets_with_data %>% 
+ # filter(!is.na(response)) %>% 
+  group_by(data_split, data_source, exp_type, variable) %>%
+  mutate(count = as.numeric(case_when(!is.na(response) ~ 1,
+                           is.na(response) ~ 0))) %>% 
+  summarise(total = sum(count))
+
+# Make list
+data_by_trial_long_split_propdiff <- data_by_trial_long_propdiff%>%
   split(f = paste0(.$data_split, "_", .$exp_type, "_", .$data_source, "_", .$variable))
 
-list_levels_1_lmem <- unique(str_remove(names(data_by_trial_long_split), "(?<=peekbank|archival).*"))
+# check how many datasets in each variable
+# Prop Looking
+summary_archival_prop <- as.data.frame(data_by_trial_long_split_propdiff$all_both_types_archival_prop_looking) %>% 
+  group_by(dataset_name) %>% 
+  summarise(response = mean(response, rm.na = T)) 
+
+datasets_with_data <- list()
+results_lmem <- list()
+
+for (i in 1:length(data_by_trial_long_split_propdiff)) {
+  element <- names(data_by_trial_long_split_propdiff[i])
+ # models <- data_by_trial_long_split_propdiff[[i]]$simple
+  for (j in 1:length(element)) {
+    element <- element[[j]]
+    variable <- names(element[j]) %>% 
+    # summary_tidy <- as.tibble(broom.mixed::tidy(model, effects = "fixed")) %>% 
+      # janitor::clean_names() %>% 
+      # mutate(across(where(is.numeric), round, digits = 6),
+             model = paste(element, variable, sep = "_"))
+    datasets_with_data[paste0(element, "_", variable)] <- list(summary_tidy)
+  }
+}
+
+# Optional: If you want to see a quick overview
+data_by_trial_long_split_propdiff %>%
+  group_by(data_by_trial_long_split_propdiff) %>%
+  summarise(
+    total_datasets = n_distinct(dataset_name),
+    total_observations = sum(n_observations)
+  )
+
+#Model the data
+
+list_levels_1_lmem <- unique(str_remove(names(data_by_trial_long_split_propdiff), "(?<=peekbank|archival).*"))
 
 #create list structure to house models and model summaries
 #------------models
@@ -1126,9 +1178,9 @@ for (i in 1:length(model_summaries_lmem)) {
 #------------plots
 #inter_plots_lmem <- list()
 
-for (i in 1:length(data_by_trial_long_split)) {
-  data <- data_by_trial_long_split[[i]] 
-  element <- str_remove(names(data_by_trial_long_split[i]), "(?<=peekbank|archival).*")
+for (i in 1:length(data_by_trial_long_split_propdiff)) {
+  data <- data_by_trial_long_split_propdiff[[i]] 
+  element <- str_remove(names(data_by_trial_long_split_propdiff[i]), "(?<=peekbank|archival).*")
   var_name <- unique(data$variable)
   
   #Skip the loop for variables that area all NA (like the pupil ones in the peekbank data)
@@ -1143,29 +1195,9 @@ for (i in 1:length(data_by_trial_long_split)) {
       
       #--------------------------------------------------------------------Simple model
       #prop looking variables and mean/peak pupil get regular lmer
-      if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
+      if(var_name %in% c("prop_looking", "prop_looking_diff")) {
         simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = data, family = gaussian())
-        simple_lmem_sum <- summary(simple_lmem)
-      #switch to or stay on target get binomial
-      } else if (var_name %in% c("correct_shift", "remain_on_target")) {
-        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = binomial,  control = glmmTMBControl())
-        simple_lmem_sum <- summary(simple_lmem)
-      #aoi switches get zero inflated poisson
-      } else if (var_name %in% c("total_aoi_switches")) {
-        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = poisson, ziformula=~1, control = glmmTMBControl())
-        simple_lmem_sum <- summary(simple_lmem)
-      #number fixations gets regular poisson
-      } else if (var_name %in% c("number_fixations")) {
-        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = poisson, control = glmmTMBControl())
-        simple_lmem_sum <- summary(simple_lmem)
-      #RT, duration of looks, and pupil latency get gamma log link
-      } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
-        simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = data, family = Gamma(link = "log"), control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       }
         
@@ -1180,29 +1212,9 @@ for (i in 1:length(data_by_trial_long_split)) {
     } else {
         #--------------------------------------------------------------------Simple model with age only
       #prop looking variables and mean/peak pupil get regular lmer
-      if(var_name %in% c("prop_looking", "prop_looking_diff", "mean_pupil_size_difference", "peak_pupil_size_difference")) {
+      if(var_name %in% c("prop_looking", "prop_looking_diff")) {
         simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
                                   data = data, family = gaussian ())
-        simple_lmem_sum <- summary(simple_lmem)
-      #switch to or stay on target get binomial
-      } else if (var_name %in% c("correct_shift", "remain_on_target")) {
-        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = binomial,  control = glmmTMBControl())
-        simple_lmem_sum <- summary(simple_lmem)
-      #aoi switches get zero inflated poisson
-      } else if (var_name %in% c("total_aoi_switches")) {
-        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = poisson, ziformula=~1, control = glmmTMBControl())
-        simple_lmem_sum <- summary(simple_lmem)
-      #number fixations gets regular poisson
-      } else if (var_name %in% c("number_fixations")) {
-        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = poisson, control = glmmTMBControl()) 
-        simple_lmem_sum <- summary(simple_lmem)
-      #RT, duration of looks, and pupil latency get gamma log link
-      } else if (var_name %in% c("latency_to_switch", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
-        simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = data, family = Gamma(link = "log"), control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       }
         
@@ -1217,193 +1229,44 @@ for (i in 1:length(data_by_trial_long_split)) {
   }
 }
 
-#------------------------------see which ones have convergence issues
+#Model Results 
+results_lmem <- list()
 
-model_names <- character()
-model_warnings <- character()
-
-for(i in 1:length(models_lmem)) {
-  level1_name <- names(models_lmem[i])
-  for(j in 1:length(models_lmem[[i]]$simple)) {
-    level2_name <- names(models_lmem[[i]]$simple[j])
-    model_names <- c(model_names, paste0(level1_name, "...", level2_name))
-    warnings <- glue::glue_collapse(model_summaries_lmem[[i]]$simple[[j]]$optinfo$conv$lme4$messages, sep = "; ")
-    model_warnings <- c(model_warnings, warnings)
+for (i in 1:length(models_lmem)) {
+  element <- names(models_lmem[i])
+  models <- models_lmem[[i]]$simple
+  for (j in 1:length(models)) {
+    model <- models[[j]]
+    variable <- names(models[j])
+    summary_tidy <- as.tibble(broom.mixed::tidy(model, effects = "fixed")) %>% 
+      janitor::clean_names() %>% 
+      mutate(across(where(is.numeric), round, digits = 6),
+             model = paste(element, variable, sep = "_"))
+    results_lmem[paste0(element, "_", variable)] <- list(summary_tidy)
   }
 }
 
-warnings <- tibble(model = model_names,
-       warnings = model_warnings) %>% 
-  separate(model, into = c("model", "variable"), sep = "\\.\\.\\.") %>% 
-  mutate(any_warning = ifelse(warnings == "", "no", "yes")) %>% 
-  count(variable, any_warning) %>% 
-  pivot_wider(names_from = "any_warning", values_from = "n") 
+fct_lvls2 <- c("Proportion looking", "Proportion looking difference")
 
-warnings_sum <- warnings %>%
-  summarise(no = sum(no, na.rm = T), yes = sum(yes, na.rm = T)) %>%
-  mutate(variable = "TOTAL")
-
-warnings %>%
-  bind_rows(warnings_sum) %>%
-  rename(no_warning = no, warning = yes)
-
-# Check some variables and models
-# "all_both_types_archival latency_to_switch"
-hist(data_by_trial_long_split$all_both_types_archival_latency_to_switch$response)
-hist(data_by_trial_long_split$all_both_types_archival_latency_to_switch$age_months)
-hist(data_by_trial_long_split$all_both_types_archival_latency_to_switch$exp_to_target_lang)
-
-hist(data_by_trial_long_split$all_both_types_peekbank_latency_to_switch$response)
-hist(data_by_trial_long_split$all_both_types_peekbank_latency_to_switch$age_months)
-
-# Calculate variance and mean
-var_latency <- var(df_all_both_types_archival_latency_to_switch$response, na.rm = T)
-mean_latency <- mean(df_all_both_types_archival_latency_to_switch$response, na.rm = T)
-# Variance-to-mean ratio
-var_mean_ratio <- var_latency / mean_latency # overdispersion
-
-df_all_both_types_archival_latency_to_switch <- as.data.frame(data_by_trial_long_split$all_both_types_archival_latency_to_switch) #%>% 
-# filter(dataset_name != "CogMisp-24") # lots of NA
-
-df_all_both_types_peekbank_latency_to_switch <- as.data.frame(data_by_trial_long_split$all_both_types_peekbank_latency_to_switch) 
-
-summary_na <- df_all_both_types_archival_latency_to_switch %>% 
-  filter(!is.na(response)) %>% 
-  group_by(dataset_name, subject_id) %>% 
-  summarise(count_na = n_distinct(target_word)) %>% 
-  group_by(dataset_name) %>% 
-  summarise(total_na = sum(count_na))
-
-modzigamma_archival_latency_switch <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_latency_to_switch, 
-                                  family = ziGamma(link = 'log'), # not converging
-                                 ziformula = ~1, # account for many 0s
-                                  control = glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
-summary(modzigamma_archival_latency_switch)
-
-modnbinom_archival_latency_switch <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_latency_to_switch, 
-                                 # family = Gamma(link = 'log'), # use gamma if Cogmisp is filtered out
-                                 family = nbinom2(),
-                                 ziformula = ~1, # account for many 0s
-                                #family = poisson(),
-                                  control = glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
-
-summary(modnbinom_archival_latency_switch)
-
-modnbinom1_archival_latency_switch <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_latency_to_switch, 
-                                  family = nbinom1(), 
-                                  control = glmmTMBControl())
-
-summary(modnbinom1_archival_latency_switch) # very similar AIC
-
-# Model tests
-als <- DHARMa::simulateResiduals(modnbinom_archival_latency_switch, plot = T)
-DHARMa::testDispersion(als)
-DHARMa::testZeroInflation(als)
-
-# Calculate variance and mean
-var_latency <- var(df_all_both_types_peekbank_latency_to_switch$response, na.rm = T)
-mean_latency <- mean(df_all_both_types_peekbank_latency_to_switch$response, na.rm = T)
-# Variance-to-mean ratio
-var_mean_ratio <- var_latency / mean_latency # also overdispersion
-
-modGamm_peekbank_latency_switch <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_peekbank_latency_to_switch, 
-                                  family = Gamma(link = "log"), 
-                                  control = glmmTMBControl())
-
-summary(modGamm_peekbank_latency_switch)
-
-modnbinom_peekbank_latency_switch <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_peekbank_latency_to_switch, 
-                                 family = nbinom2(),
-                                 ziformula = ~1, 
-                                  control = glmmTMBControl())
-
-summary(modnbinom_peekbank_latency_switch)
-# Model tests
-# This model checks are not very good, the model is not converging as linear
-pls <- DHARMa::simulateResiduals(modnbinom_peekbank_latency_switch, plot = T)
-DHARMa::testDispersion(pls)
-DHARMa::testZeroInflation(pls)
-
-# "all_experimental_archival first_look_dur"
-
-# "all_non-experimental_archival latency_to_switch"
-
-# "distractor_both_types_archival latency_to_switch"
-
-# "distractor_non-experimental_archival latency_to_switch"
-
-# "distractor_experimental_archival longest_look_by_trial"
-# "target_experimental_archival longest_look_by_trial"
-
-# longest_look_by_trial
-hist(data_by_trial_long_split$distractor_experimental_archival_longest_look_by_trial$response)
-hist(data_by_trial_long_split$target_experimental_archival_longest_look_by_trial$response)
-
-df_distractor_experimental_archival_longest_look_by_trial <- as.data.frame(data_by_trial_long_split$distractor_experimental_archival_longest_look_by_trial) 
-
-modGamm_dist_arch_longest_look <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_distractor_experimental_archival_longest_look_by_trial, 
-                                 family = gaussian(link = "log"), 
-                                  control = glmmTMBControl())
-
-summary(modGamm_dist_arch_longest_look)
-# Test model
-alk <- DHARMa::simulateResiduals(modGamm_archival_long_look, plot = T)
-DHARMa::testDispersion(alk)
-DHARMa::testZeroInflation(alk)
-
-df_all_both_types_peekbank_longest_look_by_trial <- as.data.frame(data_by_trial_long_split$all_both_types_peekbank_longest_look_by_trial) 
-
-modGamm_peekbank_long_look <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_peekbank_longest_look_by_trial, 
-                                 family = Gamma(link = "log"), 
-                                  control = glmmTMBControl())
-
-summary(modGamm_peekbank_long_look)
-# Test model
-plk <- DHARMa::simulateResiduals(modGamm_peekbank_long_look, plot = T)
-DHARMa::testDispersion(plk)
-DHARMa::testZeroInflation(plk)
-
-# number fixations
-hist(data_by_trial_long_split$all_both_types_archival_number_fixations$response)
-hist(data_by_trial_long_split$all_both_types_peekbank_number_fixations$response)
-
-df_all_both_types_archival_number_fixations <- as.data.frame(data_by_trial_long_split$all_both_types_archival_number_fixations) 
-
-
-modGamm_archival_num_fixations <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_number_fixations, 
-                                  family = poisson, 
-                                  control = glmmTMBControl())
-
-summary(modGamm_archival_num_fixations)
-# Model tests
-a2 <- DHARMa::simulateResiduals(modGamm_archival_num_fixations, plot = T)
-DHARMa::testDispersion(a2)
-DHARMa::testZeroInflation(a2)
-DHARMa::testQuantiles(a2)
-DHARMa::plotResiduals(a2)
-
-df_all_both_types_peekbank_number_fixations <- as.data.frame(data_by_trial_long_split$all_both_types_peekbank_number_fixations) 
-
-modGamm_peekbank_num_fixations <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_peekbank_number_fixations, 
-                                  family = poisson, 
-                                  control = glmmTMBControl())
-
-summary(modGamm_peekbank_num_fixations)
-# Model tests
-a3 <- DHARMa::simulateResiduals(modGamm_peekbank_num_fixations, plot = T)
-DHARMa::testDispersion(a3)
-DHARMa::testZeroInflation(a3)
-DHARMa::testQuantiles(a3)
-DHARMa::plotResiduals(a3)
+cleaned_results_lmem <- results_lmem %>%
+  bind_rows() %>%
+  filter(!str_detect(term, "Intercept")) %>% 
+  mutate(#initial_look = str_extract(model, ".*(?=_non)"), # used to filter all non-experimental trials?
+        initial_look = str_extract(model, ".*?(?=_)"),
+         dataset = str_extract(model, "archival|peekbank"),
+         variable = str_extract(model, "(?<=archival_|peekbank_).*"),
+         variable = str_remove(variable, "mean_"),
+         term = case_when(str_detect(term, "age_") ~ "Age",
+                          str_detect(term, "exp_") ~ "Language\nexposure"),
+        # remove the str_replace here to de-anonymize
+         dataset = str_replace(str_to_title(dataset), "Archival", "ANONYM")) %>% 
+  mutate(variable = case_when(variable == "prop_looking" ~ "Proportion looking",
+                              variable == "prop_looking_diff" ~ "Proportion looking difference",
+                              TRUE ~ snakecase::to_sentence_case(variable)),
+         initial_look = case_when(initial_look == "all" ~ "All initial looks",
+                                TRUE ~ snakecase::to_sentence_case(initial_look)),
+         data_split = factor(snakecase::to_sentence_case(initial_look), levels = c("Target", "Distractor", "All initial looks")),
+         var_ordered = factor(variable, levels = fct_lvls2, ordered = T))
 
 ```
 
