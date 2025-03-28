@@ -833,9 +833,9 @@ print_list[[paste("Model comparisons - interaction models")]] <- mod_comparisons
 
 ```{r}
 
-library(lme4)
+#library(lme4)
 library(glmmTMB)
-library(lmerTest)
+#library(lmerTest)
 
 #use trial-level data for lmems
 data_by_trial_long_split <- data_by_trial %>%
@@ -908,12 +908,12 @@ for (i in 1:length(data_by_trial_long_split)) {
                                   data = data, family = poisson, control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       #RT, duration of looks, and pupil latency get gamma log link
-      } else if (var_name %in% c("duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
+      } else if (var_name %in% c("duration_of_look", "longest_look_by_trial", "peak_pupil_latency")) {
         simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = data, family = Gamma(link = "log"), control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       # longest look needs ziGamma to account for overdispersion
-      } else if (var_name %in% c("longest_look_by_trial")) {
+      } else if (var_name %in% c("longest_look_by_trial", "first_look_dur")) {
         simple_lmem <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = data, family = ziGamma(link = "log"), 
                                #ziformula=~1, 
@@ -952,12 +952,12 @@ for (i in 1:length(data_by_trial_long_split)) {
                                   data = data, family = poisson, control = glmmTMBControl()) 
         simple_lmem_sum <- summary(simple_lmem)
       #RT, duration of looks, and pupil latency get gamma log link
-      } else if (var_name %in% c("duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_latency")) {
+      } else if (var_name %in% c("duration_of_look", "longest_look_by_trial", "peak_pupil_latency")) {
         simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
                                   data = data, family = Gamma(link = "log"), control = glmmTMBControl())
         simple_lmem_sum <- summary(simple_lmem)
       # longest look needs ziGamma to account for overdispersion
-      } else if (var_name %in% c("longest_look_by_trial")) {
+      } else if (var_name %in% c("longest_look_by_trial", "first_look_dur")) {
         simple_lmem <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
                                   data = data, family = ziGamma(link = "log"), 
                              #  ziformula=~1, 
@@ -1006,23 +1006,24 @@ warnings %>%
   bind_rows(warnings_sum) %>%
   rename(no_warning = no, warning = yes)
 
-# Check some variables and models
-
-# "all_experimental_archival first_look_dur"
-
-# "distractor_experimental_archival longest_look_by_trial"
+# Check variables with issues and models
+# There are still issues with: 
+# longest_look_by_trial": 
 # "target_experimental_archival longest_look_by_trial"
+# "distractor_experimental_archival longest_look_by_trial"
+
+# "first_look_dur": 
+# "all_experimental_archival first_look_dur"
 
 # longest_look_by_trial
 hist(data_by_trial_long_split$distractor_experimental_archival_longest_look_by_trial$response)
 hist(data_by_trial_long_split$target_experimental_archival_longest_look_by_trial$response)
 
 df_distractor_experimental_archival_longest_look_by_trial <- as.data.frame(data_by_trial_long_split$distractor_experimental_archival_longest_look_by_trial) 
-
 df_all_both_types_archival_longest_look_by_trial <- as.data.frame(data_by_trial_long_split$all_both_types_archival_longest_look_by_trial) 
 
 modGamm_dist_arch_longest_look <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_longest_look_by_trial, 
+                                  data = df_distractor_experimental_archival_longest_look_by_trial, 
                                  family = Gamma(link = "log"), 
                                #   ziformula=~1,
                                   control = glmmTMBControl())
@@ -1030,12 +1031,12 @@ modGamm_dist_arch_longest_look <- glmmTMB(response ~ age_months + exp_to_target_
 summary(modGamm_dist_arch_longest_look)
 
 
-modGamm_dist_arch_longest_look <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
+modGauss_dist_arch_longest_look <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
                                   data = df_distractor_experimental_archival_longest_look_by_trial, 
                                  family = gaussian,
                                  control = glmmTMBControl())
 
-summary(modGamm_dist_arch_longest_look)
+summary(modGauss_dist_arch_longest_look)
 
 # Test model
 alk <- DHARMa::simulateResiduals(modGamm_dist_arch_longest_look, plot = T)
@@ -1055,41 +1056,6 @@ plk <- DHARMa::simulateResiduals(modGamm_peekbank_long_look, plot = T)
 DHARMa::testDispersion(plk)
 DHARMa::testZeroInflation(plk)
 
-# number fixations
-hist(data_by_trial_long_split$all_both_types_archival_number_fixations$response)
-hist(data_by_trial_long_split$all_both_types_peekbank_number_fixations$response)
-
-df_all_both_types_archival_number_fixations <- as.data.frame(data_by_trial_long_split$all_both_types_archival_number_fixations) 
-
-
-modGamm_archival_num_fixations <- glmmTMB(response ~ age_months + exp_to_target_lang + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_archival_number_fixations, 
-                                  family = poisson, 
-                                  control = glmmTMBControl())
-
-summary(modGamm_archival_num_fixations)
-# Model tests
-a2 <- DHARMa::simulateResiduals(modGamm_archival_num_fixations, plot = T)
-DHARMa::testDispersion(a2)
-DHARMa::testZeroInflation(a2)
-DHARMa::testQuantiles(a2)
-DHARMa::plotResiduals(a2)
-
-df_all_both_types_peekbank_number_fixations <- as.data.frame(data_by_trial_long_split$all_both_types_peekbank_number_fixations) 
-
-modGamm_peekbank_num_fixations <- glmmTMB(response ~ age_months + (1|dataset_name/subject_id),
-                                  data = df_all_both_types_peekbank_number_fixations, 
-                                  family = poisson, 
-                                  control = glmmTMBControl())
-
-summary(modGamm_peekbank_num_fixations)
-# Model tests
-a3 <- DHARMa::simulateResiduals(modGamm_peekbank_num_fixations, plot = T)
-DHARMa::testDispersion(a3)
-DHARMa::testZeroInflation(a3)
-DHARMa::testQuantiles(a3)
-DHARMa::plotResiduals(a3)
-
 ```
 #Models - Mixed Effects (prop_looking vs looking difference)
 
@@ -1108,12 +1074,13 @@ data_by_trial_long_propdiff <- data_by_trial %>%
   mutate(across(c(exp_to_target_lang, age_months), scale)) %>%
   ungroup() 
 
+# Check which datsets contribute data to prop looking and prop diff
 datasets_with_data <- data_by_trial_long_propdiff %>% 
   group_by(data_split, data_source, exp_type, variable, dataset_name) %>% 
   summarise(response = mean(response, rm.na = T)) 
 
+# check how many datasets contribute to each measure
 datasets_with_data_count <- datasets_with_data %>% 
- # filter(!is.na(response)) %>% 
   group_by(data_split, data_source, exp_type, variable) %>%
   mutate(count = as.numeric(case_when(!is.na(response) ~ 1,
                            is.na(response) ~ 0))) %>% 
@@ -1122,37 +1089,6 @@ datasets_with_data_count <- datasets_with_data %>%
 # Make list
 data_by_trial_long_split_propdiff <- data_by_trial_long_propdiff%>%
   split(f = paste0(.$data_split, "_", .$exp_type, "_", .$data_source, "_", .$variable))
-
-# check how many datasets in each variable
-# Prop Looking
-summary_archival_prop <- as.data.frame(data_by_trial_long_split_propdiff$all_both_types_archival_prop_looking) %>% 
-  group_by(dataset_name) %>% 
-  summarise(response = mean(response, rm.na = T)) 
-
-datasets_with_data <- list()
-results_lmem <- list()
-
-for (i in 1:length(data_by_trial_long_split_propdiff)) {
-  element <- names(data_by_trial_long_split_propdiff[i])
- # models <- data_by_trial_long_split_propdiff[[i]]$simple
-  for (j in 1:length(element)) {
-    element <- element[[j]]
-    variable <- names(element[j]) %>% 
-    # summary_tidy <- as.tibble(broom.mixed::tidy(model, effects = "fixed")) %>% 
-      # janitor::clean_names() %>% 
-      # mutate(across(where(is.numeric), round, digits = 6),
-             model = paste(element, variable, sep = "_"))
-    datasets_with_data[paste0(element, "_", variable)] <- list(summary_tidy)
-  }
-}
-
-# Optional: If you want to see a quick overview
-data_by_trial_long_split_propdiff %>%
-  group_by(data_by_trial_long_split_propdiff) %>%
-  summarise(
-    total_datasets = n_distinct(dataset_name),
-    total_observations = sum(n_observations)
-  )
 
 #Model the data
 
