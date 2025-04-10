@@ -390,6 +390,9 @@ for (i in 1:length(cor_matrices_pearson)) {
   #get rid of lang exposure and age varaibles
   data <- cor_matrices_pearson[[i]] 
   element <- names(cor_matrices_pearson[i])
+  if (str_detect(element, "prop_looking_diff")) {
+    next
+  }
   data <- data[!rownames(data) %in% c("Age in months", "Target language exposure"), !colnames(data) %in% c("Age in months", "Target language exposure")]
   for_factor_analysis[paste0(element)] <- list(data)
 }
@@ -669,6 +672,8 @@ for (i in 1:length(model_summaries)) {
 #------------plots
 inter_plots <- list()
 
+#-------------------------------------------------------Make models and save to list
+
 for (i in 1:length(data_by_subject_long_split)) {
   data <- data_by_subject_long_split[[i]] 
   element <- str_extract(str_replace(names(data_by_subject_long_split[i]), "mean_mean", "mean"), ".*(?=_mean)")
@@ -695,11 +700,6 @@ for (i in 1:length(data_by_subject_long_split)) {
         inter_plot <- interactions::interact_plot(inter_mod, pred= exp_to_target_lang_centred, modx=age_months_centred, plot.points = T) + 
           ggtitle(paste0(str_replace(element, "all_archival_", "archival"), "\n", var_name)) + 
           theme(plot.background = element_rect(colour = "grey", fill=NA))
-        
-        #LMEM LAIA: 
-        # simple_lmem <- sjstats::std_beta(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|dataset_name/subject_id),  
-        #                           data = data))
-        # simple_lmem_sum <- summary(simple_lmem)
         
         add_simple <- list(simple_mod)
         names(add_simple) <- var_name
@@ -858,6 +858,7 @@ library(glmmTMB)
 #use trial-level data for lmems
 data_by_trial_long_split <- data_by_trial %>%
   #filter(exp_type == "both_types") %>%
+  dplyr::select(-prop_looking_diff) %>%
   dplyr::select(data_split, data_source, exp_type, dataset_name, subject_id, age_months, age_months_centred, exp_to_target_lang, eng_exp, fre_exp, target_word, prop_looking:longest_look_by_trial, peak_pupil_size_difference, mean_pupil_size_difference, peak_pupil_latency) %>%
   pivot_longer(12:ncol(.), names_to = "variable", values_to = "response") %>%
   #scale the predictor variables to standardize before doing the models
@@ -894,8 +895,8 @@ for (i in 1:length(data_by_trial_long_split)) {
   element <- str_remove(names(data_by_trial_long_split[i]), "(?<=peekbank|archival).*")
   var_name <- unique(data$variable)
   
-  #Skip the loop for variables that area all NA (like the pupil ones in the peekbank data)
-  if (sjmisc::all_na(data$response)) {
+  #Skip the loop for variables that area all NA (like the pupil ones in the peekbank data and also the prop_looking_diff variable)
+  if (sjmisc::all_na(data$response) | str_detect(element, "prop_looking_diff")) {
     next
   } else {
     
@@ -996,33 +997,33 @@ for (i in 1:length(data_by_trial_long_split)) {
 
 #------------------------------see which ones have convergence issues
 
-model_names <- character()
-model_warnings <- character()
+# model_names <- character()
+# model_warnings <- character()
+# 
+# for(i in 1:length(models_lmem)) {
+#   level1_name <- names(models_lmem[i])
+#   for(j in 1:length(models_lmem[[i]]$simple)) {
+#     level2_name <- names(models_lmem[[i]]$simple[j])
+#     model_names <- c(model_names, paste0(level1_name, "...", level2_name))
+#     warnings <- glue::glue_collapse(model_summaries_lmem[[i]]$simple[[j]]$optinfo$conv$lme4$messages, sep = "; ")
+#     model_warnings <- c(model_warnings, warnings)
+#   }
+# }
+# 
+# warnings <- tibble(model = model_names,
+#        warnings = model_warnings) %>% 
+#   separate(model, into = c("model", "variable"), sep = "\\.\\.\\.") %>% 
+#   mutate(any_warning = ifelse(warnings == "", "no", "yes")) %>% 
+#   count(variable, any_warning) %>% 
+#   pivot_wider(names_from = "any_warning", values_from = "n") 
 
-for(i in 1:length(models_lmem)) {
-  level1_name <- names(models_lmem[i])
-  for(j in 1:length(models_lmem[[i]]$simple)) {
-    level2_name <- names(models_lmem[[i]]$simple[j])
-    model_names <- c(model_names, paste0(level1_name, "...", level2_name))
-    warnings <- glue::glue_collapse(model_summaries_lmem[[i]]$simple[[j]]$optinfo$conv$lme4$messages, sep = "; ")
-    model_warnings <- c(model_warnings, warnings)
-  }
-}
-
-warnings <- tibble(model = model_names,
-       warnings = model_warnings) %>% 
-  separate(model, into = c("model", "variable"), sep = "\\.\\.\\.") %>% 
-  mutate(any_warning = ifelse(warnings == "", "no", "yes")) %>% 
-  count(variable, any_warning) %>% 
-  pivot_wider(names_from = "any_warning", values_from = "n") 
-
-warnings_sum <- warnings %>%
-  summarise(no = sum(no, na.rm = T), yes = sum(yes, na.rm = T)) %>%
-  mutate(variable = "TOTAL")
-
-warnings %>%
-  bind_rows(warnings_sum) %>%
-  rename(no_warning = no, warning = yes)
+# warnings_sum <- warnings %>%
+#   summarise(no = sum(no, na.rm = T), yes = sum(yes, na.rm = T)) %>%
+#   mutate(variable = "TOTAL")
+# 
+# warnings %>%
+#   bind_rows(warnings_sum) %>%
+#   rename(no_warning = no, warning = yes)
 
 # Check variables with issues and models
 # There are still issues with: 
@@ -1073,6 +1074,91 @@ summary(modGamm_peekbank_long_look)
 plk <- DHARMa::simulateResiduals(modGamm_peekbank_long_look, plot = T)
 DHARMa::testDispersion(plk)
 DHARMa::testZeroInflation(plk)
+
+
+#---------------------------------Familiar trial models data vis for paper
+
+non_exp_lmem_summaries <- model_summaries_lmem[str_detect(names(models_lmem), "non-exp")]
+
+lmem_summaries_for_plot <- list()
+
+for (i in 1:length(non_exp_lmem_summaries)) {
+  element <- names(non_exp_lmem_summaries[i])
+  summaries <- non_exp_lmem_summaries[[i]]$simple
+  for (j in 1:length(summaries)) {
+    summary <- summaries[[j]]
+    variable <- names(summaries[j])
+    summary_tidy <- as_tibble(summary$coefficients$cond, rownames = "term") %>% 
+      janitor::clean_names() %>% 
+      mutate(pr_z = round(pr_z, digits = 6),
+             model = paste(element, variable, sep = "_"))
+    lmem_summaries_for_plot[paste0(element, "_", variable)] <- list(summary_tidy)
+  }
+}
+
+fct_lvls <- c("Proportion looking", 
+              #"Proportion looking difference", 
+              "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
+
+cleaned_plot_data <- lmem_summaries_for_plot %>%
+  bind_rows() %>%
+  filter(!str_detect(term, "Intercept")) %>%
+  filter(!str_detect(model, "prop_looking_diff")) %>%
+  mutate(initial_look = str_extract(model, ".*(?=_non)"),
+         dataset = str_extract(model, "archival|peekbank"),
+         variable = str_extract(model, "(?<=archival_|peekbank_).*"),
+         variable = str_remove(variable, "mean_"),
+         term = case_when(str_detect(term, "age_") ~ "Age",
+                          str_detect(term, "exp_") ~ "Language\nexposure"),
+         #remove the str_replace here to de-anonymize
+         dataset = str_replace(str_to_title(dataset), "Archival", "ANONYM")) %>% 
+  mutate(variable = case_when(variable == "latency_to_switch" ~ "Reaction time",
+                              variable == "duration_of_look" ~ "Duration of all looks",
+                              variable == "first_look_dur" ~ "Duration of first look",
+                              variable == "longest_look_by_trial" ~ "Duration of longest look",
+                              variable == "correct_shift" ~ "Proportion trials shifting to target",
+                              variable == "remain_on_target" ~ "Proportion trials staying on target",
+                              variable == "prop_looking" ~ "Proportion looking",
+                              variable == "prop_looking_diff" ~ "Proportion looking difference",
+                              variable == "total_aoi_switches" ~ "Number of AOI switches",
+                              variable == "pupil_size_difference" ~ "Mean pupil size difference",
+                              TRUE ~ snakecase::to_sentence_case(variable)),
+         initial_look = case_when(initial_look == "all" ~ "All initial looks",
+                                TRUE ~ snakecase::to_sentence_case(initial_look)),
+         
+         data_split = factor(snakecase::to_sentence_case(initial_look), levels = c("Target", "Distractor", "All initial looks")),
+         var_ordered = factor(variable, levels = fct_lvls, ordered = T))
+
+cleaned_plot_data %>%
+  #remove "all initial looks" for target and distractor only types
+  filter(!(initial_look == "All initial looks" & variable %in% c("Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time"))) %>%
+  mutate(initial_look = case_when(initial_look == "All initial looks" ~ "Combined",
+                                  TRUE ~ initial_look)) %>%
+  ggplot(aes(x = term, y = fct_rev(var_ordered), fill = pr_z)) +
+  geom_tile(color = "black") +
+  #geom_text(aes(label = round(pr_t, digits = 3))) +
+  #geom_text(aes(label = paste('Beta', "==", round(standardized, digits = 3))), parse = TRUE) +
+  geom_text(aes(label = round(estimate, digits = 3))) +
+  facet_grid(dataset~initial_look) +
+  scale_x_discrete(position = "top") +
+  scale_fill_gradientn(name = "p-values",
+                      limits = c(0,1),
+                      colors = c("#479a28", "#b4e6a1", "#FFFFFF"),
+                      values = c(0, .1, 1),
+                      breaks = c(0, .1, .9), 
+                      labels = c("significant", "marginal", "not significant")) +
+  theme_minimal() +
+  theme(strip.placement = 'outside',
+        axis.title = element_blank(),
+        strip.text = element_text(face="bold"),
+        panel.grid = element_blank(),
+        panel.spacing = unit(1.25, "lines")) +
+  guides(
+    #reverse color order (higher value on top)
+    fill = guide_colorbar(reverse = TRUE)) +
+  ggtitle("Standardized coefficients for mixed-effects model estimates")
+
+ggsave(here("figures/lmem_betas_plot.png"), width = 9, height = 6, bg = "white")
 
 ```
 #Models - Mixed Effects (prop_looking vs looking difference)
