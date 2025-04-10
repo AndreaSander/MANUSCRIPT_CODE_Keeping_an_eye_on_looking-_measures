@@ -103,7 +103,7 @@ for_correlation_with_age <- data_by_subject %>%
   filter(exp_type != "both_types") %>%
   #want to keep target and distractor
   filter(data_split == "all") %>%
-  dplyr::select(-(starts_with("sd")), -(starts_with("n_trials")), -(ends_with("centred")), -subject_id, -ends_with("exp")) %>%
+  dplyr::select(-(starts_with("sd")), -(starts_with("n_trials")), -(ends_with("centred")), -subject_id, -ends_with("exp"), -(ends_with("diff"))) %>%
   dplyr::select(where(is.numeric), data_split_id, data_source) %>%
   split(f = paste0(.$data_split_id, "_", .$data_source))
 
@@ -155,10 +155,16 @@ for (i in 1:length(p_values)) {
 #Change column and row names to look nicer on plot in real words
 
 better_names <- data.frame(
-  old_name = c("age_months", "exp_to_target_lang", "fre_exp", "eng_exp", "mean_prop_looking", "mean_prop_looking_diff", "mean_number_fixations", "mean_prop_shift_target_initial", "mean_prop_shift_distractor_initial", "mean_RT", "mean_aoi_switches", "mean_duration_of_look", "mean_first_look_dur", "mean_longest_look", "mean_peak_pupil_size_difference", "mean_mean_pupil_size_difference", "mean_peak_pupil_latency"),
-  new_name = c("Age in months", "Target language exposure", "French exposure", "English exposure", "Proportion looking", "Proportion looking difference", "Total number of fixations", "Proportion trials staying on target", "Proportion trials shifting to target", "Reaction time", "Mean number of AOI switches", "Mean duration of looks", "Mean duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency"))
+  old_name = c("age_months", "exp_to_target_lang", "fre_exp", "eng_exp", "mean_prop_looking",
+               #"mean_prop_looking_diff", 
+               "mean_number_fixations", "mean_prop_shift_target_initial", "mean_prop_shift_distractor_initial", "mean_RT", "mean_aoi_switches", "mean_duration_of_look", "mean_first_look_dur", "mean_longest_look", "mean_peak_pupil_size_difference", "mean_mean_pupil_size_difference", "mean_peak_pupil_latency"),
+  new_name = c("Age in months", "Target language exposure", "French exposure", "English exposure", "Proportion looking", 
+               #"Proportion looking difference", 
+               "Total number of fixations", "Proportion trials staying on target", "Proportion trials shifting to target", "Reaction time", "Mean number of AOI switches", "Mean duration of looks", "Mean duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency"))
 
-var_order <- c("Age in months", "Proportion looking", "Proportion looking difference", "Total number of fixations", "Proportion trials staying on target", "Proportion trials shifting to target", "Reaction time", "Mean number of AOI switches", "Mean duration of looks", "Mean duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency", "Target language exposure")
+var_order <- c("Age in months", "Proportion looking", 
+               #"Proportion looking difference", 
+               "Total number of fixations", "Proportion trials staying on target", "Proportion trials shifting to target", "Reaction time", "Mean number of AOI switches", "Mean duration of looks", "Mean duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency", "Target language exposure")
 
 # Create a lookup vector from the IDs/Names dataframe
 lookup_names <- better_names$new_name
@@ -452,9 +458,13 @@ data_by_trial_icc <- data_by_trial %>%
   mutate(data_split = case_when(data_split == "all" ~ "all_initial_looks",
                                 TRUE ~ data_split))
 
-possible_columns <- c("prop_looking", "prop_looking_diff", "number_fixations", "correct_shift", "remain_on_target", "latency_to_switch", "total_aoi_switches", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_size_difference", "mean_pupil_size_difference", "peak_pupil_latency")
+possible_columns <- c("prop_looking", 
+                      #"prop_looking_diff", 
+                      "number_fixations", "correct_shift", "remain_on_target", "latency_to_switch", "total_aoi_switches", "duration_of_look", "first_look_dur", "longest_look_by_trial", "peak_pupil_size_difference", "mean_pupil_size_difference", "peak_pupil_latency")
 
-fct_lvls <- c("Proportion looking", "Proportion looking difference", "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
+fct_lvls <- c("Proportion looking", 
+              #"Proportion looking difference", 
+              "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
   
   #HK note: below I have calculated the ICC for all variables with the same code chunk, however, when it runs, we are getting quite a few singular fit warnings
 
@@ -569,7 +579,9 @@ for (i in 1:length(icc_by_var_by_look)) {
 #   
 #}
 
-fct_lvls <- c("Proportion looking", "Proportion looking difference", "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
+fct_lvls <- c("Proportion looking", 
+              #"Proportion looking difference", 
+              "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
 
 pooled_icc_for_plot <- pooled_icc %>%
   bind_rows() %>%
@@ -620,8 +632,8 @@ print_list[[paste("ICC:")]] <- icc_by_var_by_look
 ```{r}
 
 # Laia added this because my version of sjstats did not have the std_beta() function
-library(remotes)
-install_version("sjstats", version = "0.17.2")
+#library(remotes)
+#devtools::install_version("sjstats", version = "0.17.2")
 library(sjstats)
 library(lme4)
 library(lmerTest)
@@ -684,10 +696,10 @@ for (i in 1:length(data_by_subject_long_split)) {
           ggtitle(paste0(str_replace(element, "all_archival_", "archival"), "\n", var_name)) + 
           theme(plot.background = element_rect(colour = "grey", fill=NA))
         
-        #LMEM LAIA: the site/block does not work for me (can you check Hilary?)
-        simple_lmem <- sjstats::std_beta(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|site/block),  
-                                  data = data))
-        simple_lmem_sum <- summary(simple_lmem)
+        #LMEM LAIA: 
+        # simple_lmem <- sjstats::std_beta(lmer(response ~ age_months_centred + exp_to_target_lang_centred + (1|dataset_name/subject_id),  
+        #                           data = data))
+        # simple_lmem_sum <- summary(simple_lmem)
         
         add_simple <- list(simple_mod)
         names(add_simple) <- var_name
@@ -749,6 +761,9 @@ summaries_for_plot <- list()
 
 for (i in 1:length(non_exp_model_summaries)) {
   element <- names(non_exp_model_summaries[i])
+  if (str_detect(element, "prop_looking_diff")) {
+    next
+  }
   summaries <- non_exp_model_summaries[[i]]$simple
   for (j in 1:length(summaries)) {
     summary <- summaries[[j]]
@@ -761,11 +776,14 @@ for (i in 1:length(non_exp_model_summaries)) {
   }
 }
 
-fct_lvls <- c("Proportion looking", "Proportion looking difference", "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
+fct_lvls <- c("Proportion looking", 
+              #"Proportion looking difference", 
+              "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Number of AOI switches", "Duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
 
 cleaned_plot_data <- summaries_for_plot %>%
   bind_rows() %>%
-  filter(!str_detect(term, "Intercept")) %>% 
+  filter(!str_detect(term, "Intercept")) %>%
+  filter(!str_detect(model, "prop_looking_diff")) %>%
   mutate(initial_look = str_extract(model, ".*(?=_non)"),
          dataset = str_extract(model, "archival|peekbank"),
          variable = str_extract(model, "(?<=archival_|peekbank_).*"),
@@ -813,7 +831,7 @@ cleaned_plot_data %>%
         axis.title = element_blank(),
         strip.text = element_text(face="bold"),
         panel.grid = element_blank(),
-        panel.spacing = unit(1.5, "lines")) +
+        panel.spacing = unit(1.25, "lines")) +
   guides(
     #reverse color order (higher value on top)
     fill = guide_colorbar(reverse = TRUE)) +
@@ -1077,7 +1095,7 @@ data_by_trial_long_propdiff <- data_by_trial %>%
 # Check which datsets contribute data to prop looking and prop diff
 datasets_with_data <- data_by_trial_long_propdiff %>% 
   group_by(data_split, data_source, exp_type, variable, dataset_name) %>% 
-  summarise(response = mean(response, rm.na = T)) 
+  summarise(response = mean(response, na.rm = T)) 
 
 # check how many datasets contribute to each measure
 datasets_with_data_count <- datasets_with_data %>% 
@@ -1232,12 +1250,14 @@ crit_value<- qnorm(1-((0.05)/(2)))
 experimental_means_sds_long <- experimental_means_sds %>%
   pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
   separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  filter(variable != "prop_looking_diff") %>%
   mutate(var_type = paste0("experimental_", var_type)) %>%
   pivot_wider(names_from = "var_type", values_from = "value")
 
 non_experimental_means_sds_long <- non_experimental_means_sds %>%
  pivot_longer(c(starts_with("mean_"), starts_with("sd_"), starts_with("n_trials_")), names_to = "variable", values_to = "value") %>%
   separate(variable, into = c("var_type", "variable"), sep = "(?<=^mean|sd|n_trials)_") %>%
+  filter(variable != "prop_looking_diff") %>%
   mutate(var_type = paste0("non_experimental_", var_type)) %>%
   pivot_wider(names_from = "var_type", values_from = "value") 
 
@@ -1312,7 +1332,9 @@ for (i in 1:length(smds)) {
 
 # #Create effect size visualization
 
-fct_lvls <- c("Proportion looking", "Proportion looking difference", "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Mean number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
+fct_lvls <- c("Proportion looking", 
+              #"Proportion looking difference", 
+              "Number fixations", "Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time", "Mean number of AOI switches", "Mean duration of all looks", "Duration of first look", "Duration of longest look", "Peak pupil size difference", "Mean pupil size difference", "Peak pupil latency")
 
 smds_for_plot <- means_cis %>%
   bind_rows() %>%

@@ -26,14 +26,38 @@ load(here("archival_KBH_anonimyzed/kbh_experimental_items.Rda"))
 anon_data <- kbh_w_items %>%
   mutate(exp_type = "non-experimental") %>%
   bind_rows(kbh_experimental_items %>%
-  mutate(exp_type = "experimental"))  %>%
+  mutate(exp_type = "experimental",
+  #fix one case where target word and distractor word are wrong (media name is door L, target side is L, trial lang is English, and yoked pair is door-mouth, so target word is door and distractor word is mouth)
+    distractor_word = case_when(target_word == "OTHER" ~ "mouth",
+                          TRUE ~ distractor_word),
+    target_word = case_when(target_word == "OTHER" ~ "door",
+                          TRUE ~ target_word)))  %>%
   rename(dataset_name = studio_project_name) %>%
   filter(!(recording_name == "Mix_20_S52" & trial_number > 1)) #Mix 20 S052 has 23 rows for trials other than trial 1 with no data—remove these here, try to figure out why this happened
+
+#Get corrected set of yoked pairs
+
+archival_yoked_pairs <- read_csv(here("archival_yoked_pairs.csv")) 
   
 #add the same data to itself with the exp_type "both_types" for new analyses that aren't split between types
 
 anon_data <- anon_data %>%
-  bind_rows(anon_data %>% mutate(exp_type = "both_types"))
+  bind_rows(anon_data %>% mutate(exp_type = "both_types")) %>%
+  #Update with corrected list of yoked pairs
+  left_join(archival_yoked_pairs) %>%
+  mutate(
+         yoked_target = case_when(dataset_name == "LearnMix-36" ~ NA_character_,
+                                  str_detect(corrected_yoked_pair, target_word) ~ target_word,
+                                  str_detect(fr_to_en1, target_word) ~ str_extract(fr_to_en1, "(?<=-).*"),
+                                  str_detect(fr_to_en2, target_word) ~ str_extract(fr_to_en2, "(?<=-).*")),
+         yoked_distractor = case_when(dataset_name == "LearnMix-36" ~ NA_character_,
+                                  str_detect(corrected_yoked_pair, distractor_word) ~ distractor_word,
+                                  str_detect(fr_to_en1, distractor_word) ~ str_extract(fr_to_en1, "(?<=-).*"),
+                                  str_detect(fr_to_en2, distractor_word) ~ str_extract(fr_to_en2, "(?<=-).*")),
+         yoked_pair = case_when(dataset_name == "LearnMix-36" ~ NA_character_,#these ones aren't actually yoked, so they shouldn't be used for prop_looking_diff calculation
+                                is.na(corrected_yoked_pair) ~ yoked_pair,
+                                TRUE ~ corrected_yoked_pair)) %>%
+  select(-corrected_yoked_pair)
   
 rm(kbh_w_items)
 rm(kbh_experimental_items)
@@ -189,27 +213,28 @@ prop_looking_by_subject <- prop_looking_by_trial %>%
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
 prop_looking_diff_by_item <- analysis_dataset_split %>%
+  filter(!is.na(yoked_pair)) %>%
   ungroup()%>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  dplyr::select(recording_name, recording_timestamp, target_word, distractor_word, target, distractor)%>%
-  pivot_longer(c(target_word, distractor_word), names_to = "word_type", values_to = "word") %>%
-  mutate(looking = case_when(word_type == "target_word" & target == TRUE ~ TRUE,
-                             word_type == "distractor_word" & distractor == TRUE ~ TRUE,
+  dplyr::select(recording_name, recording_timestamp, yoked_target, yoked_distractor, target, distractor)%>%
+  pivot_longer(c(yoked_target, yoked_distractor), names_to = "word_type", values_to = "word") %>%
+  mutate(looking = case_when(word_type == "yoked_target" & target == TRUE ~ TRUE,
+                             word_type == "yoked_distractor" & distractor == TRUE ~ TRUE,
                              TRUE ~ FALSE)) %>%
   group_by(recording_name, word_type, word) %>%
   #what percent of the time when x is target are kids looking at x, what percent of the time when x is distractor are kids looking at x
   summarise(prop_looking = sum(looking == T, na.rm = T)/n()) %>%
   pivot_wider(names_from = "word_type", values_from = "prop_looking") %>%
-  filter(!is.na(target_word) & !is.na(distractor_word)) %>%
-  mutate(prop_looking_diff = target_word - distractor_word) %>%
-  dplyr::select(recording_name, target_word = word, prop_looking_diff) %>%
-  ungroup() 
+  filter(!is.na(yoked_target) & !is.na(yoked_distractor)) %>%
+  mutate(prop_looking_diff = yoked_target - yoked_distractor) %>%
+  dplyr::select(recording_name, yoked_target = word, prop_looking_diff) %>%
+  ungroup()
 
 prop_looking_diff_by_subject <- prop_looking_diff_by_item %>%  
   group_by(recording_name) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
   summarise(mean_prop_looking_diff = mean(prop_looking_diff),
             sd_prop_looking_diff = sd(prop_looking_diff),
-            n_trials_prop_looking_diff = length(unique(target_word))) %>%
+            n_trials_prop_looking_diff = length(unique(yoked_target))) %>%
   ungroup() #only 165 kids have data for this variable, because they didn't have enough data/trials included with both words of each yoked pair
 
 
@@ -520,7 +545,9 @@ peak_pupil_latency_by_subject <- peak_pupil_latency_by_trial %>%
 #------------------------------Put all together in one dataset
 
 data_new_dvs_by_trial <- analysis_dataset_split %>%
-  distinct(recording_name, trial_number, subject_id, dataset_name, age_months, target_word, exp_to_target_lang, fre_exp, eng_exp) %>%
+  distinct(recording_name, trial_number, subject_id, dataset_name, age_months, target_word, distractor_word, yoked_pair, exp_to_target_lang, fre_exp, eng_exp) %>%
+   rename(yoked_target = target_word,
+          yoked_distractor = distractor_word) %>%
   left_join(prop_looking_by_trial) %>%
   left_join(prop_looking_diff_by_item) %>%
   left_join(fixations_total_by_trial) %>%
@@ -590,10 +617,11 @@ print_list[[paste(analysis_type, "average number of trials per participant (", j
 
 ```
 
-
+#Print list
 
 ```{r}
-#Save the print_list to a text file
+
+#Save the print_list to a text file an
 
 #sink(here(paste0("beyond_looks_analyses/", analysis_type, "_code_printout.txt"))); print(print_list); sink()
 

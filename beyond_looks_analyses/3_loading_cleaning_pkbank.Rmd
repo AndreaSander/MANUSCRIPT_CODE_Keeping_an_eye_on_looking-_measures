@@ -17,7 +17,7 @@ library(here)
 
 ```
 
-
+#Get data
 ```{r}
 
 #Get peekbank data - start with 5 datasets that have been code checked (we are NOT using fmw_2013 anymore because of data insonsistency issues)
@@ -85,6 +85,7 @@ peekbank_data <- peekbank_data %>%
 beepr::beep()
 
 ```
+
 
 #Clean data, trackloss exclusions
 
@@ -185,6 +186,62 @@ print_list[[paste("After Trackloss and Trials Exclusions N trials:")]] <- n_tria
 
 ```
 
+#Create yoked pairs
+
+```{r}
+#these studies appear to have yoked pairs: 
+
+yoked_studies <- c("hurtado_2008", "pomper_saffran_2016", "potter_remix", "ronfard_2021", "swingley_aslin_2002", "weisleder_stl") 
+
+peekbank_data_yoked_pairs <- peekbank_data_after_exclusions %>%
+  filter(dataset_name %in% yoked_studies) %>% 
+  mutate(yoked_target = case_when(target_word %in% c("shawl", "gall", "pelota") ~ "ball",
+                                     target_word %in% c("mog", "tog", "perro") ~ "dog",
+                                     target_word %in% c("opal", "opple", "manzana") ~ "apple",
+                                     target_word %in% c("pity", "yitty", "gato") ~ "kitty",
+                                     target_word %in% c("raby", "vaby") ~ "baby",
+                                     target_word %in% c("cur", "kier") ~ "car",
+                                     target_word %in% c("plátano") ~ "banana",
+                                     target_word %in% c("leche") ~ "milk",
+                                     target_word %in% c("puerta") ~ "door",
+                                     target_word %in% c("boca") ~ "mouth",
+                                     target_word %in% c("globo") ~ "balloon",
+                                     target_word %in% c("galleta") ~ "cookie",
+                                     target_word %in% c("pie") ~ "foot",
+                                     target_word %in% c("jugo") ~ "juice",
+                                     target_word %in% c("libro") ~ "book",
+                                     target_word %in% c("cuchara") ~ "spoon",
+                                     target_word %in% c("zapato") ~ "shoe",
+                                     target_word %in% c("caballo") ~ "horse",
+                                    target_word %in% c("pájaro") ~ "bird",
+                                    TRUE ~ target_word),
+         yoked_distractor = case_when(distractor_stimulus_label %in% c("shawl", "gall", "pelota") ~ "ball",
+                                     distractor_stimulus_label %in% c("mog", "tog", "perro") ~ "dog",
+                                     distractor_stimulus_label %in% c("opal", "opple", "manzana") ~ "apple",
+                                     distractor_stimulus_label %in% c("pity", "yitty", "gato") ~ "kitty",
+                                     distractor_stimulus_label %in% c("raby", "vaby") ~ "baby",
+                                     distractor_stimulus_label %in% c("cur", "kier") ~ "car",
+                                     distractor_stimulus_label %in% c("plátano") ~ "banana",
+                                     distractor_stimulus_label %in% c("leche") ~ "milk",
+                                     distractor_stimulus_label %in% c("puerta") ~ "door",
+                                     distractor_stimulus_label %in% c("boca") ~ "mouth",
+                                     distractor_stimulus_label %in% c("globo") ~ "balloon",
+                                     distractor_stimulus_label %in% c("galleta") ~ "cookie",
+                                     distractor_stimulus_label %in% c("pie") ~ "foot",
+                                     distractor_stimulus_label %in% c("jugo") ~ "juice",
+                                     distractor_stimulus_label %in% c("libro") ~ "book",
+                                     distractor_stimulus_label %in% c("cuchara") ~ "spoon",
+                                     distractor_stimulus_label %in% c("zapato") ~ "shoe",
+                                     distractor_stimulus_label %in% c("caballo") ~ "horse",
+                                    distractor_stimulus_label %in% c("pájaro") ~ "bird",
+                                    TRUE ~ distractor_stimulus_label),
+         yoked_pair = case_when(yoked_target < yoked_distractor ~ paste0(yoked_target, "-", yoked_distractor),
+                                TRUE ~ paste0(yoked_distractor, "-", yoked_target))) %>% 
+  distinct(recording_name, subject_id, dataset_name, trial_number, age_months, yoked_target, yoked_distractor, yoked_pair)
+  
+
+```
+
 #Make variables
 ```{r}
 
@@ -252,28 +309,29 @@ prop_looking_by_subject <- prop_looking_by_trial %>%
 #Within a pair of pictures A and B, the fixation to picture A relative to B when A was the target, minus the fixation #to A when A was the distractor.
 
 prop_looking_diff_by_item <- analysis_dataset_split %>%
-  rename(distractor_word = distractor_stimulus_label) %>%
-  ungroup()%>%
+  filter(dataset_name %in% yoked_studies) %>%
+  ungroup() %>%
+  left_join(peekbank_data_yoked_pairs) %>%
   filter(noun_onset>= 360 & noun_onset <= 3000)%>%
-  dplyr::select(recording_name, noun_onset, target_word, distractor_word, target, distractor)%>%
-  pivot_longer(c(target_word, distractor_word), names_to = "word_type", values_to = "word") %>%
-  mutate(looking = case_when(word_type == "target_word" & target == TRUE ~ TRUE,
-                             word_type == "distractor_word" & distractor == TRUE ~ TRUE,
+  dplyr::select(recording_name, noun_onset, yoked_target, yoked_distractor, target, distractor)%>%
+  pivot_longer(c(yoked_target, yoked_distractor), names_to = "word_type", values_to = "word") %>%
+  mutate(looking = case_when(word_type == "yoked_target" & target == TRUE ~ TRUE,
+                             word_type == "yoked_distractor" & distractor == TRUE ~ TRUE,
                              TRUE ~ FALSE)) %>%
   group_by(recording_name, word_type, word) %>%
   #what percent of the time when x is target are kids looking at x, what percent of the time when x is distractor are kids looking at x
   summarise(prop_looking = sum(looking == T, na.rm = T)/n()) %>%
   pivot_wider(names_from = "word_type", values_from = "prop_looking") %>%
-  filter(!is.na(target_word) & !is.na(distractor_word)) %>%
-  mutate(prop_looking_diff = target_word - distractor_word) %>%
-  dplyr::select(recording_name, target_word = word, prop_looking_diff) %>%
+  filter(!is.na(yoked_target) & !is.na(yoked_distractor)) %>%
+  mutate(prop_looking_diff = yoked_target - yoked_distractor) %>%
+  dplyr::select(recording_name, yoked_target = word, prop_looking_diff) %>%
   ungroup() 
 
 prop_looking_diff_by_subject <- prop_looking_diff_by_item %>%  
   group_by(recording_name) %>% #Calculating this variable by subject instead of by trial for the correlation matrix.
   summarise(mean_prop_looking_diff = mean(prop_looking_diff),
             sd_prop_looking_diff = sd(prop_looking_diff),
-            n_trials_prop_looking_diff = length(unique(target_word))) %>%
+            n_trials_prop_looking_diff = length(unique(yoked_target))) %>%
   ungroup() #only 165 kids have data for this variable, because they didn't have enough data/trials included with both words of each yoked pair
 
 
@@ -508,6 +566,7 @@ first_look_duration_by_subject <- first_look_duration_by_trial %>%
  
 data_new_dvs_by_trial <- analysis_dataset_split %>%
   distinct(recording_name, trial_number, subject_id, dataset_name, age_months, target_word) %>%
+  left_join(peekbank_data_yoked_pairs) %>%
   left_join(prop_looking_by_trial) %>%
   #double check if kids see the same word more than once... if so, this item will be ducplicated in the dataset
   left_join(prop_looking_diff_by_item) %>%
