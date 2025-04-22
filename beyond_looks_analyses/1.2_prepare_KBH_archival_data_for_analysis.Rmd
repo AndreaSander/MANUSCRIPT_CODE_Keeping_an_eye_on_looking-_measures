@@ -130,7 +130,7 @@ mutate(yoked_pair = case_when(
   grepl("Chien|Livre", media_name) & studio_project_name %in% c("Mix-20","Mix-14")  ~"chien-livre",
   grepl("Biscuit|Pied", media_name) & studio_project_name %in% c("Mix-20","Mix-14") ~"biscuit-pied",
 
-  TRUE~"OTHER"
+  TRUE~"OTHER" #Learnmix doesn't have yoked pairs, so they will get OTHER here
   )
 )
 
@@ -303,7 +303,8 @@ kbh_experimental_clean <- kbh_experimental_clean %>%
   mutate(target = case_when(trackloss == TRUE ~ NA,
                             TRUE ~ target),
          distractor = case_when(trackloss == TRUE ~ NA,
-                                TRUE ~ distractor))
+                                TRUE ~ distractor)) %>%
+  ungroup()
 
 
 #Add a column with the yoked pairs information---yoking info taken from lab server
@@ -311,7 +312,6 @@ kbh_experimental_clean <- kbh_experimental_clean %>%
 `%notin%` <- Negate(`%in%`)
 
 kbh_experimental_items<- kbh_experimental_clean %>%
-  filter(!grepl("Teelo|Walem", media_name)) %>% # Filtering the learn experiment which used non-words for the experimental condition.
 mutate(yoked_pair = case_when(
   grepl("Monkey|Sheep", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"monkey-sheep",
   grepl("Bunny|Dog", media_name) & studio_project_name== "CompMix-36" & grepl("E", studio_test_name) ~"bunny-dog",

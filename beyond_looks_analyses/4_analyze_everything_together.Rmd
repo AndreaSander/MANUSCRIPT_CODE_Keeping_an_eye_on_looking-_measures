@@ -619,7 +619,8 @@ pooled_icc_for_plot %>%
   theme_minimal()+
   theme(plot.background = element_rect(fill = "white"),
         panel.spacing = unit(2, "lines"),
-        panel.grid = element_line(color = "#EEEEFF")) +
+        panel.grid = element_line(color = "#EEEEFF"),
+        legend.position = "bottom") +
   scale_x_continuous(limits = c(-.125,1)) +
   scale_color_manual(values = c("#438e32", "#c82a85", "#333333")) 
 
@@ -1457,7 +1458,8 @@ smds_for_plot %>%
   theme_minimal()+
   theme(plot.background = element_rect(fill = "white"),
         panel.spacing = unit(2, "lines"),
-        panel.grid = element_line(color = "#EEEEFF")) +
+        panel.grid = element_line(color = "#EEEEFF"),
+        legend.position = "bottom") +
   scale_x_continuous(limits = c(-1,1)) +
   scale_color_manual(values = c("#438e32", "#c82a85", "#333333")) 
 
