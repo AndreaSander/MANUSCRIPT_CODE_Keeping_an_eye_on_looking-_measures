@@ -621,7 +621,7 @@ print_list[[paste(analysis_type, "average number of trials per participant (", j
 
 ```{r}
 
-#Save the print_list to a text file an
+#Save the print_list to a text file to get all the output in one place
 
 #sink(here(paste0("beyond_looks_analyses/", analysis_type, "_code_printout.txt"))); print(print_list); sink()
 
