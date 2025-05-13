@@ -474,7 +474,7 @@ first_look_duration_by_subject <- first_look_duration_by_trial %>%
 
 pupil_dilation <- analysis_dataset_split %>%
   ungroup() %>%
-  filter(noun_onset>= -200 & noun_onset <= 500)%>%
+  filter(noun_onset>= -200 & noun_onset <= 1500)%>%
 mutate(pupil_period = case_when(noun_onset >= -200 & noun_onset <= 0 ~ "baseline",
                                 TRUE ~ "post_onset"))%>% 
   dplyr::select(recording_timestamp, subject_id, recording_name, trial_number, media_name, pupil_period, pupil_right, pupil_left, initial_look) %>%
