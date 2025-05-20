@@ -1440,7 +1440,8 @@ smds_for_plot <- means_cis %>%
          data_split = case_when(data_split == "all" ~ "Combined",
                                 TRUE ~ snakecase::to_sentence_case(data_split)),
          data_split = factor(snakecase::to_sentence_case(data_split), levels = c("Target", "Distractor", "Combined")),
-         var_ordered = factor(variable, levels = fct_lvls, ordered = T))
+         var_ordered = factor(variable, levels = fct_lvls, ordered = T))%>%
+  filter(!(data_split == "Combined" & str_detect(variable, "staying|shifting|Reaction")))
 
 
 smds_for_plot %>%
