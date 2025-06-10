@@ -257,7 +257,9 @@ for ( i in 1:length(cor_plots_data)) {
                 "_all", ""), 
               "_", ", ")), 
           #Remove this str_replace to de-anonymize
-            "Archival", "ANONYM")))
+           "Archival", "ANONYM")
+         # "Archival", "Internal (Concordia)")
+        ))
 
   
   corr_plots[[paste(name)]] <- plot
@@ -358,7 +360,9 @@ for ( i in 1:length(corr_plots_data_sp)) {
                 "_all", ""), 
               "_", ", ")), 
           #Remove this str_replace to de-anonymize
-            "Archival", "ANONYM")))
+           "Archival", "ANONYM")
+          # "Archival", "Internal (Concordia)")
+        ))
 
   
   corr_plots_sp[[paste(name)]] <- plot
@@ -670,8 +674,11 @@ model_summaries[list_levels_1] <- list(NULL)
 for (i in 1:length(model_summaries)) {
   model_summaries[[i]] <- list_levels_2
 }
+#------------model comparisons
+mod_comparisons <- list()
+
 #------------plots
-inter_plots <- list()
+inter_plots <- list() #interaction plots
 
 #-------------------------------------------------------Make models and save to list
 
@@ -697,6 +704,9 @@ for (i in 1:length(data_by_subject_long_split)) {
         inter_mod <- lm.beta::lm.beta(lm(response ~ age_months_centred*exp_to_target_lang_centred,
                                     data = data))
         inter_mod_sum <- summary(inter_mod)
+        #simple vs interaction model comparison
+        mod_compare <- anova(simple_mod, inter_mod)
+        mod_comparisons[[paste0(element, "_", var_name)]] <- mod_compare
         #interaction plot
         inter_plot <- interactions::interact_plot(inter_mod, pred= exp_to_target_lang_centred, modx=age_months_centred, plot.points = T) + 
           ggtitle(paste0(str_replace(element, "all_archival_", "archival"), "\n", var_name)) + 
@@ -842,7 +852,7 @@ ggsave(here("figures/model_betas_plot.png"), width = 9, height = 6, bg = "white"
 
 
 print_list[[paste("Model Summaries")]] <- model_summaries 
-
+print_list[[paste("Model Comparisons - simple vs. interaction (archival data only)")]] <- mod_comparisons 
 print_list[[paste("Model comparisons - simple models")]] <- mod_comparisons_simple
 print_list[[paste("Model comparisons - interaction models")]] <- mod_comparisons_inter
 
