@@ -214,35 +214,54 @@ for ( i in 1:length(cor_plots_data)) {
   if (name == "non-experimental_all_archival") {
     axis_text_x <- element_blank()
     axis_text_y <- element_text()
+    df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(.25, -9, -9, .25), 3),
+                       y = c(11.6, 11.6, 13.4, 13.4, 4.6, 4.6, 11.4, 11.4, 1.6, 1.6, 4.4, 4.4),
+                       alpha = .2)
   } else if (name == "non-experimental_all_peekbank") {
     axis_text_x <- element_blank()
     axis_text_y <- element_blank()
+    df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(.25, -9, -9, .25), 3),
+                       y = c(11.6, 11.6, 13.4, 13.4, 4.6, 4.6, 11.4, 11.4, 1.6, 1.6, 4.4, 4.4),
+                       alpha = 0)
   } else if (name == "experimental_all_archival") {
     axis_text_x <- element_text(angle = 45,
                                        hjust = 1)
     
     axis_text_y <- element_text()
+    df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(.25, -9, -9, .25), 3),
+                       y = c(11.6, 11.6, 13.4, 13.4, 4.6, 4.6, 11.4, 11.4, 1.6, 1.6, 4.4, 4.4),
+                       alpha = .2)
   } else if (name == "experimental_all_peekbank") {
     axis_text_x <- element_text(angle = 45,
                                        hjust = 1)
     axis_text_y <- element_blank()
+    df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(.25, -9, -9, .25), 3),
+                       y = c(11.6, 11.6, 13.4, 13.4, 4.6, 4.6, 11.4, 11.4, 1.6, 1.6, 4.4, 4.4),
+                       alpha = 0)
   }
   
   plot <- data %>%
       ggplot(aes(
       x=factor(var1, levels = var_order),
       y=factor(var2, levels = rev(var_order)))) +
-      geom_point(aes(size = abs(corr), fill = corr),
-                 shape = 21, color = "darkgrey") +
-      scale_fill_gradient2(low = "#8E0152", midpoint = 0, mid = "white", high = "#276419",
+      geom_point(aes(size = abs(corr), color = corr),
+                 shape = 19) +
+      ggforce::geom_shape(data = df_shape, aes(x=x, y=y, group = group, fill = group, alpha = alpha), radius = .01, show.legend = FALSE) +
+      scale_color_gradient2(low = "#8E0152", midpoint = 0, mid = "white", high = "#276419",
                             limits = c(-1, 1),
                             breaks=c(-1,-.5,0,.5,1)) +
       scale_size_continuous(range = c(1, 6)) +
-    scale_x_discrete(drop = FALSE) +
-    scale_y_discrete(drop = FALSE) +
+      scale_x_discrete(drop = FALSE) +
+      scale_y_discrete(drop = FALSE) +
+      scale_alpha_identity() +
+      scale_fill_manual(values = c("orange", "red", "blue")) +
       guides(size="none") +
       labs(x = NULL, y = NULL) +
-      coord_cartesian() +
+      coord_cartesian(xlim = c(1, NA), clip = "off") +
       theme_bw() +
       theme(axis.text.x = axis_text_x,
             axis.text.y = axis_text_y,
@@ -609,15 +628,21 @@ pooled_icc_for_plot <- pooled_icc %>%
          data_split = factor(snakecase::to_sentence_case(data_split), levels = c("Target", "Distractor", "Combined")),
          var_ordered = factor(variable, levels = fct_lvls, ordered = T))
 
+df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(-.175, -.625, -.625, -.175), 3),
+                       y = c(10.6, 10.6, 12.4, 12.4, 3.6, 3.6, 10.4, 10.4, 0.6, 0.6, 3.4, 3.4),
+                       alpha = .2)
+
 
 pooled_icc_for_plot %>%
   ggplot(aes(x = pooled_effect, y = fct_rev(var_ordered), color = data_split)) +
   geom_vline(xintercept = 0, color = "#777777", linetype = "dotted") +
   geom_errorbar(aes(xmin = ci_low, xmax = ci_high), alpha = .75, width = .25) +
-  geom_point(size=4, alpha = .75, shape = 18)+
+  geom_point(size=4, alpha = .75, shape = 18) +
+  ggforce::geom_shape(data = df_shape, aes(x=x, y=y, group = group, fill = group, alpha = alpha), radius = .01, show.legend = FALSE, inherit.aes = FALSE) +
   #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
   labs(x = "Pooled ICC",
-       y = "Variable",
+       y = "Variable\n",
        title = "Distribution of ICC by variable and initial look location",
        color = "Initial look location") +
   theme_minimal()+
@@ -625,7 +650,10 @@ pooled_icc_for_plot %>%
         panel.spacing = unit(2, "lines"),
         panel.grid = element_line(color = "#EEEEFF"),
         legend.position = "bottom") +
-  scale_x_continuous(limits = c(-.125,1)) +
+  #scale_x_continuous(limits = c(-.125,1)) +
+  scale_fill_manual(values = c("orange", "red", "blue")) +
+  scale_alpha_identity() +
+  coord_cartesian(xlim = c(-.125, 1), clip = "off") +
   scale_color_manual(values = c("#438e32", "#c82a85", "#333333")) 
 
 
@@ -819,35 +847,49 @@ cleaned_plot_data <- summaries_for_plot %>%
          data_split = factor(snakecase::to_sentence_case(initial_look), levels = c("Target", "Distractor", "All initial looks")),
          var_ordered = factor(variable, levels = fct_lvls, ordered = T))
 
-cleaned_plot_data %>%
-  #remove "all initial looks" for target and distractor only types
-  filter(!(initial_look == "All initial looks" & variable %in% c("Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time"))) %>%
-  mutate(initial_look = case_when(initial_look == "All initial looks" ~ "Combined",
-                                  TRUE ~ initial_look)) %>%
-  ggplot(aes(x = term, y = fct_rev(var_ordered), fill = pr_t)) +
-  geom_tile(color = "black") +
-  #geom_text(aes(label = round(pr_t, digits = 3))) +
-  #geom_text(aes(label = paste('Beta', "==", round(standardized, digits = 3))), parse = TRUE) +
-  geom_text(aes(label = round(standardized, digits = 3))) +
-  facet_grid(dataset~initial_look) +
-  scale_x_discrete(position = "top") +
-  scale_fill_gradientn(name = "p-values",
-                      limits = c(0,1),
-                      colors = c("#479a28", "#b4e6a1", "#FFFFFF"),
-                      values = c(0, .1, 1),
-                      breaks = c(0, .1, .9), 
-                      labels = c("significant", "marginal", "not significant")) +
-  theme_minimal() +
-  theme(strip.placement = 'outside',
-        axis.title = element_blank(),
-        strip.text = element_text(face="bold"),
-        panel.grid = element_blank(),
-        panel.spacing = unit(1.25, "lines")) +
-  guides(
-    #reverse color order (higher value on top)
-    fill = guide_colorbar(reverse = TRUE)) +
-  ggtitle("Standardized Beta coefficients for linear model estimates")
+# Heatmap graphic
 
+df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                   initial_look = "Combined",
+                       x = rep(c(.4, -2.15, -2.15, .4), 3),
+                       y = c(10.6, 10.6, 12.4, 12.4, 3.6, 3.6, 10.4, 10.4, 0.6, 0.6, 3.4, 3.4),
+                       alpha = .2)
+
+cleaned_plot_data %>%
+    #remove "all initial looks" for target and distractor only types
+    filter(!(initial_look == "All initial looks" & variable %in% c("Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time"))) %>%
+    mutate(initial_look = case_when(initial_look == "All initial looks" ~ "Combined",
+                                    TRUE ~ initial_look)) %>%
+    ggplot(aes(x = term, y = fct_rev(var_ordered), fill = pr_t)) +
+    geom_tile(color = "black") +
+    #geom_text(aes(label = round(pr_t, digits = 3))) +
+    #geom_text(aes(label = paste('Beta', "==", round(standardized, digits = 3))), parse = TRUE) +
+    geom_text(aes(label = round(standardized, digits = 3))) +
+    facet_grid(dataset~initial_look) +
+    scale_fill_gradientn(name = "p-values",
+                         limits = c(0,1),
+                         colors = c("#479a28", "#b4e6a1", "#FFFFFF"),
+                         values = c(0, .1, 1),
+                         breaks = c(0, .1, .9), 
+                         labels = c("significant", "marginal", "not significant")) +
+    ggnewscale::new_scale_fill() +
+    ggforce::geom_shape(data = df_shape, aes(x=x, y=y, group = group, fill = group, alpha = alpha), radius = .01, show.legend = FALSE, inherit.aes = FALSE) +
+    scale_fill_manual(values = c("orange", "red", "blue")) +
+  scale_alpha_identity() +
+    coord_cartesian(xlim = c(1, NA), clip = "off") +
+    theme_minimal() +
+    theme(strip.placement = 'outside',
+          axis.title = element_blank(),
+          strip.text = element_text(face="bold"),
+          panel.grid = element_blank(),
+          panel.spacing = unit(1.25, "lines")) +
+    scale_x_discrete(position = "top") +
+    guides(
+        #reverse color order (higher value on top)
+        fill = guide_colorbar(reverse = TRUE)) +
+    ggtitle("Standardized Beta coefficients for linear model estimates")
+
+ 
 ggsave(here("figures/model_betas_plot.png"), width = 9, height = 6, bg = "white")
 
 
@@ -1453,7 +1495,10 @@ smds_for_plot <- means_cis %>%
          var_ordered = factor(variable, levels = fct_lvls, ordered = T))%>%
   filter(!(data_split == "Combined" & str_detect(variable, "staying|shifting|Reaction")))
 
-
+df_shape <- tibble(group = rep(c("pred_lit", "sampling", "pupil"), each = 4),
+                       x = rep(c(-1.875, -1.075, -1.075, -1.875), 3),
+                       y = c(10.6, 10.6, 12.4, 12.4, 3.6, 3.6, 10.4, 10.4, .6, .6, 3.4, 3.4),
+                       alpha = .2)
 smds_for_plot %>%
   #remove "all initial looks" for target and distractor only types
   filter(!(data_split == "All initial looks" & variable %in% c("Proportion trials shifting to target", "Proportion trials staying on target", "Reaction time"))) %>%
@@ -1461,9 +1506,10 @@ smds_for_plot %>%
   geom_vline(xintercept = 0, color = "#777777", linetype = "dotted") +
   geom_errorbar(aes(xmin = ci_low, xmax = ci_high), alpha = .75, width = .25) +
   geom_point(size=4, alpha = .75, shape = 18)+
+  ggforce::geom_shape(data = df_shape, aes(x=x, y=y, group = group, fill = group, alpha = alpha), radius = .01, show.legend = FALSE, inherit.aes = FALSE) +
   #geom_errorbarh(aes(xmin=all_dvs_c$CI_lower, xmax=all_dvs_c$CI_upper))+
   labs(x = "Pooled effect Size",
-       y = "Variable",
+       y = "Variable\n",
        title = "Distribution of Standardized Mean Differences by variable\n(Experimental vs familiar trials)",
        color = "Initial look location") +
   theme_minimal()+
@@ -1471,8 +1517,11 @@ smds_for_plot %>%
         panel.spacing = unit(2, "lines"),
         panel.grid = element_line(color = "#EEEEFF"),
         legend.position = "bottom") +
-  scale_x_continuous(limits = c(-1,1)) +
-  scale_color_manual(values = c("#438e32", "#c82a85", "#333333")) 
+  #scale_x_continuous(limits = c(-1,1)) +
+  scale_color_manual(values = c("#438e32", "#c82a85", "#333333"))  +
+  scale_fill_manual(values = c("orange", "red", "blue")) +
+  scale_alpha_identity() +
+  coord_cartesian(xlim = c(-1, 1), clip = "off") 
 
 
 ggsave(here::here(paste0("figures/effect_size_plot.png")), height = 5, width = 8)
