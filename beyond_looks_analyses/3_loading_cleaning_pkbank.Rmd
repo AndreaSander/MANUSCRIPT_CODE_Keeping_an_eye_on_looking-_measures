@@ -350,8 +350,8 @@ fixations_total_by_trial <- analysis_dataset_split %>%
   group_by(recording_name, trial_number) %>% 
   mutate(looking_stretch_id = data.table::rleid(target)) %>%
   group_by(recording_name, trial_number, looking_stretch_id) %>%
-  #filter to fixations of at least 12 rows or ~ 200 ms
-  filter(n() >= 12) %>%
+  #filter to fixations of at least 8 rows or ~ 200 ms
+  filter(n() >= 8) %>%
   #filter to target fixations
   filter(target == TRUE) %>%
   distinct(recording_name, trial_number, looking_stretch_id, initial_look) %>%
@@ -384,8 +384,8 @@ longest_look_by_trial <- analysis_dataset_split %>%
   group_by(recording_name, trial_number) %>% 
   mutate(looking_stretch_id = data.table::rleid(target)) %>%
   group_by(recording_name, trial_number, looking_stretch_id) %>%
-  #filter to fixations of at least 12 rows or ~ 200 ms
-  filter(n() >= 12) %>%
+  #filter to fixations of at least 8 rows or ~ 200 ms
+  filter(n() >= 8) %>%
   #filter to target fixations
   filter(target == TRUE) %>%
   count(recording_name, trial_number, looking_stretch_id, initial_look, sample_rate) %>%
@@ -476,8 +476,8 @@ number_of_switches_by_trial <- analysis_dataset_split %>%
   group_by(recording_name, trial_number) %>% 
   mutate(looking_stretch_id = data.table::rleid(target)) %>%
   group_by(recording_name, trial_number, looking_stretch_id) %>%
-  #keep stretches that are at least 200 ms or 12 rows
-  filter(n() >= 12) %>%
+  #keep stretches that are at least 200 ms or 8 rows
+  filter(n() >= 8) %>%
   mutate(where_looking = case_when(target == TRUE ~ "target",
                                    distractor == TRUE ~ "distractor",
                                    TRUE ~ "neither")) %>%
@@ -511,8 +511,8 @@ mean_fixation_dur_by_trial <- analysis_dataset_split %>%
   group_by(recording_name, trial_number) %>% 
   mutate(looking_stretch_id = data.table::rleid(target)) %>%
   group_by(recording_name, trial_number, looking_stretch_id) %>%
-  #filter to fixations of at least 12 rows or ~ 200 ms
-  filter(n() >= 12) %>%
+  #filter to fixations of at least 8 rows or ~ 200 ms
+  filter(n() >= 8) %>%
   filter(target == TRUE) %>%
   group_by(recording_name, trial_number, media_name, looking_stretch_id, initial_look, sample_rate) %>%
   summarise(length_of_looks = n()) %>%
